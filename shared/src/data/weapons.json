@@ -1,0 +1,5 @@
+[
+  {"id":"mg","name":"Machine Gun","damage":6,"range":360,"cooldownMs":120,"spread":0.12},
+  {"id":"shotgun","name":"Shotgun","damage":16,"range":220,"cooldownMs":500,"spread":0.4},
+  {"id":"rocket","name":"Rocket","damage":36,"range":420,"cooldownMs":1200,"spread":0.08}
+]
