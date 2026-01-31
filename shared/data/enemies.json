@@ -1,0 +1,17 @@
+[
+  {
+    "id": "chaser",
+    "hp": 20,
+    "speed": 38
+  },
+  {
+    "id": "runner",
+    "hp": 14,
+    "speed": 62
+  },
+  {
+    "id": "spitter",
+    "hp": 24,
+    "speed": 28
+  }
+]

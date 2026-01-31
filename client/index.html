@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <title>H-Town Coop Roguelite</title>
+  </head>
+  <body>
+    <div id="app">
+      <header class="topbar">
+        <h1>H-Town Crew</h1>
+        <div id="status"></div>
+      </header>
+      <section class="panel" id="auth-panel">
+        <h2>Login</h2>
+        <div class="row">
+          <input id="email" type="email" placeholder="email" />
+          <input id="password" type="password" placeholder="password" />
+        </div>
+        <div class="row">
+          <button id="register">Register</button>
+          <button id="login">Login</button>
+        </div>
+      </section>
+      <section class="panel" id="lobby-panel" hidden>
+        <h2>Lobby</h2>
+        <div class="row">
+          <input id="room-code" type="text" placeholder="Room code" />
+          <button id="create-room">Create Room</button>
+          <button id="join-room">Join Room</button>
+          <button id="quick-play">Quick Play</button>
+        </div>
+        <div class="row">
+          <label>Display Name</label>
+          <input id="display-name" type="text" placeholder="Commander" />
+        </div>
+      </section>
+      <div id="game-root"></div>
+      <div id="hud-overlay"></div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

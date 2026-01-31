@@ -1,0 +1,72 @@
+:root {
+  font-family: "Inter", system-ui, sans-serif;
+  color: #e6f1ff;
+  background: #0c0f16;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+}
+
+#app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: #101826;
+  border-bottom: 1px solid #1e2c44;
+}
+
+.panel {
+  margin: 12px 16px;
+  padding: 12px;
+  background: #141f30;
+  border-radius: 8px;
+  border: 1px solid #1c2b42;
+}
+
+.row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-top: 8px;
+}
+
+input {
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid #243652;
+  background: #0f1624;
+  color: inherit;
+}
+
+button {
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid #2e4566;
+  background: #1a2f49;
+  color: inherit;
+  cursor: pointer;
+}
+
+#game-root {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #070a11;
+}
+
+#hud-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}

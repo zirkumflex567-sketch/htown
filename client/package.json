@@ -1,0 +1,25 @@
+{
+  "name": "@htown/client",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host",
+    "build": "vite build",
+    "preview": "vite preview",
+    "lint": "eslint . --ext .ts,.tsx",
+    "assets": "node scripts/download-assets.mjs"
+  },
+  "dependencies": {
+    "colyseus.js": "^0.15.26",
+    "phaser": "^3.80.1",
+    "@htown/shared": "file:../shared"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^7.16.0",
+    "@typescript-eslint/parser": "^7.16.0",
+    "eslint": "^9.9.0",
+    "typescript": "^5.5.4",
+    "vite": "^5.4.1"
+  }
+}

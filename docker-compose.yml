@@ -1,0 +1,29 @@
+version: "3.9"
+services:
+  server:
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+    ports:
+      - "2567:2567"
+    environment:
+      PORT: 2567
+      DB_MODE: sqlite
+      SQLITE_FILE: /app/server/data/dev.db
+      JWT_SECRET: dev-secret
+    volumes:
+      - ./server/data:/app/server/data
+    depends_on:
+      - db
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: htown
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+volumes:
+  postgres_data:

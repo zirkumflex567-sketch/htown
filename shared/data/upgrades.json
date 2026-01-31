@@ -1,0 +1,27 @@
+[
+  {
+    "id": "pilot_turn",
+    "label": "Pilot: +15% turn rate",
+    "seat": "pilot"
+  },
+  {
+    "id": "gunner_rate",
+    "label": "Gunner: +10% fire rate",
+    "seat": "gunner"
+  },
+  {
+    "id": "power_eff",
+    "label": "Power: +10% energy efficiency",
+    "seat": "power"
+  },
+  {
+    "id": "systems_cd",
+    "label": "Systems: -10% cooldowns",
+    "seat": "systems"
+  },
+  {
+    "id": "support_repair",
+    "label": "Support: +15% repair rate",
+    "seat": "support"
+  }
+]
