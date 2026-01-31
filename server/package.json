@@ -11,10 +11,10 @@
     "lint": "eslint src"
   },
   "dependencies": {
-    "@colyseus/core": "^0.15.12",
-    "@colyseus/schema": "^1.0.41",
-    "@colyseus/ws-transport": "^0.15.2",
-    "@htown/shared": "*",
+    "@colyseus/core": "0.15.12",
+    "@colyseus/schema": "1.0.41",
+    "@colyseus/ws-transport": "0.15.2",
+    "@htown/shared": "workspace:*",
     "bcryptjs": "^2.4.3",
     "better-sqlite3": "^9.4.3",
     "cors": "^2.8.5",

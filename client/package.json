@@ -10,8 +10,8 @@
     "lint": "eslint src"
   },
   "dependencies": {
-    "@colyseus/client": "^0.15.13",
-    "@htown/shared": "*",
+    "colyseus.js": "0.15.13",
+    "@htown/shared": "workspace:*",
     "phaser": "^3.80.1"
   },
   "devDependencies": {

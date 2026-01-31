@@ -1,13 +1,13 @@
 import './style.css';
 import Phaser from 'phaser';
-import { Client } from '@colyseus/client';
+import { Client } from 'colyseus.js';
 import type { PlayerInput, SeatType } from '@htown/shared';
 
 const serverUrl = import.meta.env.VITE_SERVER_URL ?? 'http://localhost:2567';
 const client = new Client(serverUrl.replace('http', 'ws'));
 
 const state = {
-  room: null as null | import('@colyseus/client').Room,
+  room: null as null | import('colyseus.js').Room,
   seat: 'pilot' as SeatType,
   accessToken: localStorage.getItem('accessToken') ?? '',
   refreshToken: localStorage.getItem('refreshToken') ?? '',

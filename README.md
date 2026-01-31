@@ -5,12 +5,12 @@ Multiplayer co-op roguelite prototype built with Phaser 3, Vite, Colyseus, and N
 ## Requirements
 
 - Node.js 20+
-- npm 9+
+- pnpm (via Corepack: `corepack enable`)
 
 ## Setup
 
 ```bash
-npm install
+pnpm install
 ```
 
 ## Development
@@ -18,7 +18,7 @@ npm install
 Run client + server together:
 
 ```bash
-npm run dev
+pnpm dev
 ```
 
 - Client: http://localhost:5173
@@ -27,13 +27,13 @@ npm run dev
 ## Build
 
 ```bash
-npm run build
+pnpm build
 ```
 
 ## Tests
 
 ```bash
-npm run test
+pnpm test
 ```
 
 ## Docker

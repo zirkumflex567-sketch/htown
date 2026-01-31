@@ -1,12 +1,14 @@
 {
   "name": "htown",
+  "version": "0.1.0",
   "private": true,
+  "packageManager": "pnpm@10.28.2",
   "workspaces": ["client", "server", "shared"],
   "scripts": {
-    "dev": "concurrently -k \"npm:dev --workspace server\" \"npm:dev --workspace client\"",
-    "build": "npm run build --workspace shared && npm run build --workspace server && npm run build --workspace client",
-    "test": "npm run test --workspace shared && npm run test --workspace server",
-    "lint": "npm run lint --workspaces --if-present"
+    "dev": "concurrently -k \"pnpm --filter server dev\" \"pnpm --filter client dev\"",
+    "build": "pnpm --filter shared build && pnpm --filter server build && pnpm --filter client build",
+    "test": "pnpm --filter shared test && pnpm --filter server test",
+    "lint": "pnpm -r lint --if-present"
   },
   "devDependencies": {
     "concurrently": "^8.2.2",
