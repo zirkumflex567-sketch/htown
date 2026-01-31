@@ -3,6 +3,7 @@
   "private": true,
   "workspaces": ["client", "server", "shared"],
   "scripts": {
+    "setup": "npm install",
     "dev": "concurrently -k \"npm:dev --workspace server\" \"npm:dev --workspace client\"",
     "build": "npm run build --workspace shared && npm run build --workspace server && npm run build --workspace client",
     "test": "npm run test --workspace shared && npm run test --workspace server",

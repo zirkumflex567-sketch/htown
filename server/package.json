@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "@colyseus/core": "^0.15.12",
-    "@colyseus/schema": "^1.0.41",
+    "@colyseus/schema": "^2.0.4",
     "@colyseus/ws-transport": "^0.15.2",
     "@htown/shared": "*",
     "bcryptjs": "^2.4.3",

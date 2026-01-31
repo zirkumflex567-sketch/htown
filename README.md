@@ -7,7 +7,15 @@ Multiplayer co-op roguelite prototype built with Phaser 3, Vite, Colyseus, and N
 - Node.js 20+
 - npm 9+
 
-## Setup
+## Setup (one click)
+
+```bash
+./scripts/dev.sh
+```
+
+This will install dependencies and start both the server and client.
+
+## Manual setup
 
 ```bash
 npm install
