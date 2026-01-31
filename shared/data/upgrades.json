@@ -1,0 +1,37 @@
+[
+  {
+    "id": "pilot_turn",
+    "name": "Pilot: +20% Turn Rate",
+    "seat": "pilot",
+    "effect": "turnRate",
+    "value": 0.2
+  },
+  {
+    "id": "gunner_fire",
+    "name": "Gunner: +15% Fire Rate",
+    "seat": "gunner",
+    "effect": "fireRate",
+    "value": 0.15
+  },
+  {
+    "id": "power_shields",
+    "name": "Power: +20% Shield Regen",
+    "seat": "power",
+    "effect": "shieldRegen",
+    "value": 0.2
+  },
+  {
+    "id": "support_mark",
+    "name": "Support: Marked targets take +25% damage",
+    "seat": "support",
+    "effect": "markedDamage",
+    "value": 0.25
+  },
+  {
+    "id": "swap_surge",
+    "name": "Swap Surge: 5s Overdrive after swap",
+    "seat": "system",
+    "effect": "swapSurge",
+    "value": 5
+  }
+]

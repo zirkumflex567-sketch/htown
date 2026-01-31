@@ -1,0 +1,26 @@
+[
+  {
+    "id": "chaser",
+    "name": "Chaser",
+    "speed": 80,
+    "hp": 20,
+    "damage": 6,
+    "color": "#e74c3c"
+  },
+  {
+    "id": "runner",
+    "name": "Runner",
+    "speed": 140,
+    "hp": 12,
+    "damage": 4,
+    "color": "#f1c40f"
+  },
+  {
+    "id": "spitter",
+    "name": "Spitter",
+    "speed": 60,
+    "hp": 18,
+    "damage": 5,
+    "color": "#9b59b6"
+  }
+]

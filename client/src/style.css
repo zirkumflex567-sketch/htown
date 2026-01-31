@@ -1,0 +1,160 @@
+body {
+  margin: 0;
+  font-family: 'Segoe UI', sans-serif;
+  background: #0a0f14;
+  color: #e0e6ee;
+}
+
+#app {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+}
+
+#game {
+  width: 100%;
+  height: 100%;
+}
+
+#hud {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.panel {
+  background: rgba(10, 14, 20, 0.8);
+  border: 1px solid rgba(80, 90, 120, 0.6);
+  border-radius: 12px;
+  padding: 10px;
+  box-shadow: 0 0 18px rgba(0, 0, 0, 0.4);
+  pointer-events: auto;
+}
+
+.panel input {
+  width: 100%;
+  margin-bottom: 6px;
+  padding: 6px;
+  border-radius: 6px;
+  border: 1px solid #32445f;
+  background: #0e1520;
+  color: #e0e6ee;
+}
+
+#auth-panel {
+  position: absolute;
+  left: 16px;
+  top: 16px;
+  width: 220px;
+  z-index: 5;
+}
+
+#top-bar {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  padding: 8px 16px;
+  background: rgba(7, 10, 14, 0.8);
+  border-radius: 20px;
+  border: 1px solid rgba(80, 90, 120, 0.5);
+}
+
+#left-panel {
+  position: absolute;
+  left: 10px;
+  top: 80px;
+  width: 160px;
+}
+
+#right-panel {
+  position: absolute;
+  right: 10px;
+  top: 80px;
+  width: 160px;
+}
+
+#bottom-panel {
+  position: absolute;
+  left: 50%;
+  bottom: 10px;
+  transform: translateX(-50%);
+  width: 320px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+#bottom-left {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  width: 200px;
+}
+
+#bottom-right {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  width: 200px;
+}
+
+button {
+  background: #1e2b3f;
+  border: 1px solid #4c638a;
+  color: #e0e6ee;
+  padding: 8px 12px;
+  border-radius: 8px;
+  margin-right: 6px;
+}
+
+button.active {
+  background: #3b5b87;
+}
+
+input[type='range'] {
+  width: 100%;
+}
+
+#swap-warning {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 32px;
+  background: rgba(160, 40, 40, 0.8);
+  padding: 20px 40px;
+  border-radius: 12px;
+}
+
+.hidden {
+  display: none;
+}
+
+#upgrade-panel {
+  position: absolute;
+  right: 10px;
+  top: 300px;
+  width: 220px;
+}
+
+#upgrade-options {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+@media (max-width: 768px) {
+  #left-panel,
+  #right-panel {
+    width: 120px;
+  }
+
+  #bottom-panel {
+    width: 260px;
+  }
+}

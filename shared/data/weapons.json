@@ -1,0 +1,27 @@
+[
+  {
+    "id": "mg",
+    "name": "Pulse MG",
+    "fireRate": 6,
+    "damage": 4,
+    "spread": 0.08,
+    "range": 520
+  },
+  {
+    "id": "shotgun",
+    "name": "Scatter Shot",
+    "fireRate": 1.4,
+    "damage": 3,
+    "pellets": 6,
+    "spread": 0.35,
+    "range": 280
+  },
+  {
+    "id": "rocket",
+    "name": "Rocket",
+    "fireRate": 0.6,
+    "damage": 16,
+    "splashRadius": 60,
+    "range": 600
+  }
+]

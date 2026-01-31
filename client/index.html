@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>H-Town Co-op Prototype</title>
+    <link rel="manifest" href="/manifest.json" />
+  </head>
+  <body>
+    <div id="app">
+      <div id="auth-panel" class="panel">
+        <h3>Login</h3>
+        <input id="auth-email" type="email" placeholder="email" />
+        <input id="auth-password" type="password" placeholder="password" />
+        <input id="room-code" type="text" placeholder="room code (optional)" />
+        <button id="auth-login">Login</button>
+        <button id="auth-register">Register</button>
+        <button id="auth-quickplay">Quick Play</button>
+        <div id="auth-status"></div>
+      </div>
+      <div id="hud">
+        <div id="top-bar">
+          <div id="status">Wave 1 · Score 0 · Time 0</div>
+          <div id="role">You are: <span id="role-name">Spectator</span></div>
+        </div>
+        <div id="left-panel" class="panel">
+          <h3>Pilot</h3>
+          <div class="controls">
+            <button id="pilot-boost">Boost</button>
+          </div>
+        </div>
+        <div id="right-panel" class="panel">
+          <h3>Gunner</h3>
+          <div class="controls">
+            <button id="gunner-fire">Fire</button>
+            <button id="gunner-weapon">Weapon</button>
+          </div>
+        </div>
+        <div id="bottom-panel" class="panel">
+          <h3>Power</h3>
+          <label>Engines <input id="power-engines" type="range" min="0" max="100" value="34" /></label>
+          <label>Weapons <input id="power-weapons" type="range" min="0" max="100" value="33" /></label>
+          <label>Shields <input id="power-shields" type="range" min="0" max="100" value="33" /></label>
+        </div>
+        <div id="bottom-left" class="panel">
+          <h3>Support</h3>
+          <button id="support-repair">Repair</button>
+          <button id="support-ping">Ping</button>
+          <button id="support-loot">Loot Pulse</button>
+        </div>
+        <div id="bottom-right" class="panel">
+          <h3>Systems</h3>
+          <button id="systems-overdrive">Overdrive</button>
+        </div>
+        <div id="swap-warning" class="hidden">Seat swap in <span id="swap-countdown">3</span>s</div>
+        <div id="upgrade-panel" class="panel hidden">
+          <h3>Upgrade Choices</h3>
+          <div id="upgrade-options"></div>
+        </div>
+      </div>
+      <div id="game"></div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
