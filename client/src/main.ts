@@ -516,6 +516,36 @@ const overlayModeLabels: Record<GameMode, string> = {
 };
 
 let roomReady = false;
+let isConnecting = false;
+let isAuthPending = false;
+let lobbyActionButtons: HTMLButtonElement[] = [];
+let lobbyInputs: HTMLInputElement[] = [];
+let authActionButtons: HTMLButtonElement[] = [];
+let authInputs: HTMLInputElement[] = [];
+
+function setLobbyBusy(busy: boolean, message?: string) {
+  lobbyActionButtons.forEach((button) => {
+    button.disabled = busy;
+  });
+  lobbyInputs.forEach((input) => {
+    input.disabled = busy;
+  });
+  if (typeof message === 'string') {
+    roomStatus.textContent = message;
+  }
+}
+
+function setAuthBusy(busy: boolean, message?: string) {
+  authActionButtons.forEach((button) => {
+    button.disabled = busy;
+  });
+  authInputs.forEach((input) => {
+    input.disabled = busy;
+  });
+  if (typeof message === 'string') {
+    loginStatus.textContent = message;
+  }
+}
 
 function updateRoomLobby() {
   if (!state.room || e2eVisualsEnabled) {
@@ -1834,8 +1864,17 @@ function handleRoomLeft() {
   }
 }
 
+function shouldConfirmLeave() {
+  const phase = (state.room?.state as { phase?: string } | null)?.phase ?? 'running';
+  return phase === 'running';
+}
+
 async function leaveRoomToMenu() {
   if (state.room) {
+    if (shouldConfirmLeave()) {
+      const confirmLeave = window.confirm('Leave the current run? Progress will be lost.');
+      if (!confirmLeave) return;
+    }
     try {
       await state.room.leave();
       return;
@@ -2088,45 +2127,51 @@ async function connect(roomId?: string, modeHint?: GameMode | null) {
     }
     return;
   }
-  if (state.room) {
-    try {
-      await state.room.leave();
-    } catch (error) {
-      addLog('error', 'Room leave failed', error);
-    }
-  }
-  state.playerId = getTokenPayload(state.accessToken) ?? '';
-  updateDebugMeta();
-  const targetMode = modeHint ?? (roomId ? null : state.mode);
-  const options: { userId: string; seat?: SeatType; lockSeat?: boolean; mode?: GameMode; accessToken?: string } = {
-    userId: state.playerId
-  };
-  if (targetMode) {
-    options.mode = targetMode;
-  }
-  if (e2eSeat) {
-    options.seat = e2eSeat;
-    options.lockSeat = true;
-  }
-  if (!e2eSeat && targetMode && targetMode !== 'crew') {
-    options.seat = 'pilot';
-    options.lockSeat = true;
-  }
-  options.accessToken = state.accessToken;
-  addLog('info', 'Connecting to room', {
-    roomId: roomId ?? 'matchmake',
-    userId: state.playerId,
-    mode: targetMode ?? 'unknown'
-  });
+  if (isConnecting) return;
+  isConnecting = true;
+  setLobbyBusy(true, 'Connecting...');
   try {
+    if (state.room) {
+      try {
+        await state.room.leave();
+      } catch (error) {
+        addLog('error', 'Room leave failed', error);
+      }
+    }
+    state.playerId = getTokenPayload(state.accessToken) ?? '';
+    updateDebugMeta();
+    const targetMode = modeHint ?? (roomId ? null : state.mode);
+    const options: { userId: string; seat?: SeatType; lockSeat?: boolean; mode?: GameMode; accessToken?: string } = {
+      userId: state.playerId
+    };
+    if (targetMode) {
+      options.mode = targetMode;
+    }
+    if (e2eSeat) {
+      options.seat = e2eSeat;
+      options.lockSeat = true;
+    }
+    if (!e2eSeat && targetMode && targetMode !== 'crew') {
+      options.seat = 'pilot';
+      options.lockSeat = true;
+    }
+    options.accessToken = state.accessToken;
+    addLog('info', 'Connecting to room', {
+      roomId: roomId ?? 'matchmake',
+      userId: state.playerId,
+      mode: targetMode ?? 'unknown'
+    });
     state.room = roomId ? await client.joinById(roomId, options) : await client.joinOrCreate('game', options);
   } catch (error) {
     addLog('error', 'Room connect failed', error);
     throw error;
+  } finally {
+    isConnecting = false;
+    setLobbyBusy(false);
   }
-    overlay.classList.add('hidden');
-    updateDebugMeta();
-    updateRoomLobby();
+  overlay.classList.add('hidden');
+  updateDebugMeta();
+  updateRoomLobby();
   state.room.onError((code, message) => {
     addLog('error', 'Room error', { code, message });
   });
@@ -2262,39 +2307,59 @@ function getTokenPayload(token: string) {
 
 const loginButton = document.getElementById('login')!;
 const registerButton = document.getElementById('register')!;
+const emailInput = document.getElementById('email') as HTMLInputElement;
+const passwordInput = document.getElementById('password') as HTMLInputElement;
   const quickPlayButton = document.getElementById('quick-play')!;
   const createRoomButton = document.getElementById('create-room')!;
   const joinRoomButton = document.getElementById('join-room')!;
   const browseRoomsButton = document.getElementById('browse-rooms')!;
   const roomList = document.getElementById('room-list')!;
+  const roomCodeInput = document.getElementById('room-code') as HTMLInputElement;
   if (!e2eVisualsEnabled) {
     const initialScreen: OverlayScreen = state.accessToken ? (e2eMode ? 'lobby' : 'menu') : 'login';
     setOverlayScreen(initialScreen);
   }
+
+  authActionButtons = [loginButton, registerButton];
+  authInputs = [emailInput, passwordInput];
+  lobbyActionButtons = [quickPlayButton, createRoomButton, joinRoomButton, browseRoomsButton, lobbyBackButton];
+  lobbyInputs = [roomCodeInput];
   
   loginButton.addEventListener('click', async () => {
-    const email = (document.getElementById('email') as HTMLInputElement).value;
-    const password = (document.getElementById('password') as HTMLInputElement).value;
+    if (isAuthPending) return;
+    const email = emailInput.value;
+    const password = passwordInput.value;
     loginStatus.textContent = '';
+    isAuthPending = true;
+    setAuthBusy(true, 'Logging in...');
     try {
       await auth('/auth/login', { email, password });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Login failed.';
       loginStatus.textContent = message;
       addLog('error', 'Login failed', { message });
+    } finally {
+      isAuthPending = false;
+      setAuthBusy(false);
     }
   });
 
   registerButton.addEventListener('click', async () => {
-    const email = (document.getElementById('email') as HTMLInputElement).value;
-    const password = (document.getElementById('password') as HTMLInputElement).value;
+    if (isAuthPending) return;
+    const email = emailInput.value;
+    const password = passwordInput.value;
     loginStatus.textContent = '';
+    isAuthPending = true;
+    setAuthBusy(true, 'Registering...');
     try {
       await auth('/auth/register', { email, password });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Register failed.';
       loginStatus.textContent = message;
       addLog('error', 'Register failed', { message });
+    } finally {
+      isAuthPending = false;
+      setAuthBusy(false);
     }
   });
 
@@ -2361,46 +2426,65 @@ quickPlayButton.addEventListener('click', async () => {
 createRoomButton.addEventListener('click', async () => {
   if (!state.accessToken) return;
   roomStatus.textContent = '';
-  const { response, data } = await requestJson(
-    '/matchmake/create',
-    {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${state.accessToken}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ mode: state.mode })
-    },
-    'create room'
-  );
-  if (!response.ok) {
-    roomStatus.textContent = data?.error || 'Could not create room.';
-    return;
+  setLobbyBusy(true, 'Creating room...');
+  try {
+    const { response, data } = await requestJson(
+      '/matchmake/create',
+      {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${state.accessToken}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode: state.mode })
+      },
+      'create room'
+    );
+    if (!response.ok) {
+      roomStatus.textContent = data?.error || 'Could not create room.';
+      return;
+    }
+    roomStatus.textContent = `Room code: ${data.code}`;
+    await connect(data.roomId, state.mode);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Create room failed.';
+    roomStatus.textContent = message;
+    addLog('error', 'Create room failed', { message });
+  } finally {
+    setLobbyBusy(false);
   }
-  roomStatus.textContent = `Room code: ${data.code}`;
-  await connect(data.roomId, state.mode);
 });
 
 joinRoomButton.addEventListener('click', async () => {
   if (!state.accessToken) return;
-  const code = (document.getElementById('room-code') as HTMLInputElement).value;
   roomStatus.textContent = '';
-  const { response, data } = await requestJson(
-    '/matchmake/join',
-    {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${state.accessToken}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ code })
-    },
-    'join room'
-  );
-  if (!response.ok) {
-    roomStatus.textContent = data?.error || 'Could not join room.';
-    return;
+  const code = roomCodeInput.value;
+  setLobbyBusy(true, 'Joining room...');
+  try {
+    const { response, data } = await requestJson(
+      '/matchmake/join',
+      {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${state.accessToken}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code })
+      },
+      'join room'
+    );
+    if (!response.ok) {
+      roomStatus.textContent = data?.error || 'Could not join room.';
+      return;
+    }
+    await connect(data.roomId);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Join room failed.';
+    roomStatus.textContent = message;
+    addLog('error', 'Join room failed', { message });
+  } finally {
+    setLobbyBusy(false);
   }
-  await connect(data.roomId);
 });
 
 browseRoomsButton.addEventListener('click', async () => {
   roomStatus.textContent = '';
   roomList.innerHTML = 'Loading rooms...';
+  setLobbyBusy(true, 'Loading rooms...');
   try {
     const rooms = await client.getAvailableRooms('game');
     if (!rooms.length) {
@@ -2422,12 +2506,20 @@ browseRoomsButton.addEventListener('click', async () => {
           const id = button.dataset.room;
           if (!id) return;
           const mode = (button.dataset.mode as GameMode | undefined) || null;
-          await connect(id, mode);
+          try {
+            await connect(id, mode);
+          } catch (error) {
+            const message = error instanceof Error ? error.message : 'Join room failed.';
+            roomStatus.textContent = message;
+            addLog('error', 'Join room failed', { message });
+          }
         });
       });
   } catch (error) {
     roomList.textContent = 'Failed to load rooms.';
     addLog('error', 'Room browser failed', error);
+  } finally {
+    setLobbyBusy(false);
   }
 });
 
