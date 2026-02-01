@@ -316,9 +316,9 @@ app.innerHTML = `
         </div>
       </div>
     </div>
-    <div class="stats-overlay hidden" id="stats-overlay">
-      <div class="card stats-card">
-        <h2>Run Stats</h2>
+      <div class="stats-overlay hidden" id="stats-overlay">
+        <div class="card stats-card">
+          <h2>Run Stats</h2>
         <div class="stats-columns">
           <div>
             <h4>My Stats</h4>
@@ -331,6 +331,42 @@ app.innerHTML = `
         </div>
         <div class="actions">
           <button id="stats-close">Close</button>
+        </div>
+      </div>
+      <div class="summary-overlay hidden" id="summary-overlay">
+        <div class="card summary-card">
+          <h2>Run Summary</h2>
+          <div class="summary-grid">
+            <div class="summary-cell">
+              <span>Mode</span>
+              <strong id="summary-mode">-</strong>
+            </div>
+            <div class="summary-cell">
+              <span>Score</span>
+              <strong id="summary-score">-</strong>
+            </div>
+            <div class="summary-cell">
+              <span>Wave</span>
+              <strong id="summary-wave">-</strong>
+            </div>
+            <div class="summary-cell">
+              <span>Kills</span>
+              <strong id="summary-kills">-</strong>
+            </div>
+            <div class="summary-cell">
+              <span>Boss</span>
+              <strong id="summary-boss">-</strong>
+            </div>
+            <div class="summary-cell">
+              <span>Time</span>
+              <strong id="summary-time">-</strong>
+            </div>
+          </div>
+          <div class="summary-seats" id="summary-seats"></div>
+          <div class="actions">
+            <button id="summary-restart">Restart</button>
+            <button id="summary-menu">Return to Menu</button>
+          </div>
         </div>
       </div>
     </div>
@@ -398,6 +434,16 @@ const settingsClose = document.getElementById('settings-close')! as HTMLButtonEl
 const statsFab = document.getElementById('stats-fab')! as HTMLButtonElement;
 const statsOverlay = document.getElementById('stats-overlay')!;
 const statsClose = document.getElementById('stats-close')! as HTMLButtonElement;
+const summaryOverlay = document.getElementById('summary-overlay')!;
+const summaryMode = document.getElementById('summary-mode')!;
+const summaryScore = document.getElementById('summary-score')!;
+const summaryWave = document.getElementById('summary-wave')!;
+const summaryKills = document.getElementById('summary-kills')!;
+const summaryBoss = document.getElementById('summary-boss')!;
+const summaryTime = document.getElementById('summary-time')!;
+const summarySeats = document.getElementById('summary-seats')!;
+const summaryRestart = document.getElementById('summary-restart')! as HTMLButtonElement;
+const summaryMenu = document.getElementById('summary-menu')! as HTMLButtonElement;
 const menuFab = document.getElementById('menu-fab')! as HTMLButtonElement;
 const seatToggle = document.getElementById('seat-toggle')! as HTMLButtonElement;
 const menuPlayButton = document.getElementById('menu-play')! as HTMLButtonElement;
@@ -473,6 +519,10 @@ let roomReady = false;
 
 function updateRoomLobby() {
   if (!state.room || e2eVisualsEnabled) {
+    roomOverlay.classList.add('hidden');
+    return;
+  }
+  if (!summaryOverlay.classList.contains('hidden')) {
     roomOverlay.classList.add('hidden');
     return;
   }
@@ -995,9 +1045,22 @@ statsFab.addEventListener('click', async () => {
   await loadStats();
 });
 
-statsClose.addEventListener('click', () => {
-  statsOverlay.classList.add('hidden');
-});
+  statsClose.addEventListener('click', () => {
+    statsOverlay.classList.add('hidden');
+  });
+
+  summaryRestart.addEventListener('click', () => {
+    hideSummary();
+    roomReady = true;
+    if (state.room) {
+      state.room.send('ready', { ready: true });
+    }
+  });
+
+  summaryMenu.addEventListener('click', () => {
+    hideSummary();
+    void leaveRoomToMenu();
+  });
 
 window.addEventListener('keydown', (event) => {
   const target = event.target as HTMLElement | null;
@@ -1712,9 +1775,57 @@ function resetClientState() {
   updateDebugMeta();
 }
 
+function hideSummary() {
+  summaryOverlay.classList.add('hidden');
+}
+
+function showSummary(payload: any) {
+  const minutes = Math.floor((payload.time ?? 0) / 60)
+    .toString()
+    .padStart(2, '0');
+  const seconds = Math.floor((payload.time ?? 0) % 60)
+    .toString()
+    .padStart(2, '0');
+  summaryMode.textContent = overlayModeLabels[state.mode] ?? state.mode;
+  summaryScore.textContent = String(payload.score ?? 0);
+  summaryWave.textContent = String(payload.wave ?? '-');
+  summaryKills.textContent = String(payload.kills ?? '-');
+  summaryBoss.textContent = String(payload.bossKills ?? '-');
+  summaryTime.textContent = `${minutes}:${seconds}`;
+  const seats = payload.seatStats ?? {};
+  const seatLines = (seat: string) => {
+    const stats = seats[seat] ?? {};
+    if (seat === 'pilot') {
+      return `DIST ${(stats.distance ?? 0).toFixed(0)} | BOOST ${stats.boosts ?? 0} | HB ${stats.handbrakes ?? 0}`;
+    }
+    if (seat === 'gunner') {
+      return `K ${stats.kills ?? 0} | H ${stats.hits ?? 0} | S ${stats.shots ?? 0}`;
+    }
+    if (seat === 'power') {
+      return `PRE ${stats.presets ?? 0} | SL ${stats.sliders ?? 0}`;
+    }
+    if (seat === 'systems') {
+      return `USES ${stats.uses ?? 0}`;
+    }
+    if (seat === 'support') {
+      return `SCAN ${stats.scans ?? 0} | REP ${stats.repairs ?? 0} | LOOT ${stats.loots ?? 0}`;
+    }
+    return '-';
+  };
+  summarySeats.innerHTML = ['pilot', 'gunner', 'power', 'systems', 'support']
+    .map((seat) => `<div><em>${seat.toUpperCase()}</em> ${seatLines(seat)}</div>`)
+    .join('');
+  summaryOverlay.classList.remove('hidden');
+  roomOverlay.classList.add('hidden');
+  if (document.pointerLockElement === arena) {
+    document.exitPointerLock();
+  }
+}
+
 function handleRoomLeft() {
   resetClientState();
   roomOverlay.classList.add('hidden');
+  hideSummary();
   if (e2eVisualsEnabled) return;
   if (state.accessToken) {
     setOverlayScreen(e2eMode ? 'lobby' : 'menu');
@@ -1802,6 +1913,7 @@ function showGameover(payload: any) {
   `;
   upgrade.classList.add('show');
   setTimeout(() => upgrade.classList.remove('show'), 4000);
+  showSummary(payload);
 }
 
 let lastLoadoutSignature = '';

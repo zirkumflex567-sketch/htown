@@ -165,7 +165,10 @@ export class GameRoom extends Room<GameState> {
     });
 
     this.onMessage('ready', (client, payload: { ready?: boolean } | boolean | undefined) => {
-      if (this.state.phase !== 'lobby') return;
+      if (this.state.phase !== 'lobby' && this.state.phase !== 'summary') return;
+      if (this.state.phase === 'summary') {
+        this.state.phase = 'lobby';
+      }
       const playerId = this.sessionToPlayer.get(client.sessionId);
       if (!playerId) return;
       const player = this.state.players.get(playerId);
@@ -309,6 +312,10 @@ export class GameRoom extends Room<GameState> {
         seatStats: seatSnapshot
       });
       this.saveScores(seatSnapshot);
+      this.state.phase = 'summary';
+      for (const player of this.state.players.values()) {
+        player.ready = false;
+      }
       this.state.ship.health = 100;
       this.state.score = 0;
       this.state.wave = 1;
@@ -371,6 +378,10 @@ export class GameRoom extends Room<GameState> {
         seatStats: seatSnapshot
       });
       this.saveScores(seatSnapshot);
+      this.state.phase = 'summary';
+      for (const player of this.state.players.values()) {
+        player.ready = false;
+      }
       for (const ship of this.state.ships.values()) {
         ship.health = 100;
       }
@@ -1195,6 +1206,9 @@ export class GameRoom extends Room<GameState> {
 
   private startRun() {
     this.state.phase = 'running';
+    for (const player of this.state.players.values()) {
+      player.ready = false;
+    }
     this.state.score = 0;
     this.state.wave = 1;
     this.state.timeSurvived = 0;
