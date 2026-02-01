@@ -15,7 +15,7 @@ export class SeatSystem {
   }
 
   assignSeat(clientId: string) {
-    const taken = new Set(this.room.state.players.values().map((player) => player.seat));
+    const taken = new Set(Array.from(this.room.state.players.values()).map((player) => player.seat));
     const available = seats.find((seat) => !taken.has(seat));
     return available ?? seats[0];
   }

@@ -13,7 +13,8 @@ const state = {
   refreshToken: localStorage.getItem('refreshToken') ?? '',
   playerId: '' as string,
   inputs: new Map<SeatType, PlayerInput>(),
-  weapons: ['MG', 'Shotgun', 'Rocket']
+  weapons: ['MG', 'Shotgun', 'Rocket'],
+  lastError: '' as string
 };
 
 const app = document.querySelector<HTMLDivElement>('#app')!;
@@ -85,6 +86,39 @@ app.innerHTML = `
         <div class="room-status" id="room-status"></div>
       </div>
     </div>
+    <button class="debug-fab" id="debug-fab" title="Toggle debug (\` or Ctrl+D)">Debug</button>
+    <div class="debug-console hidden" id="debug-console">
+      <div class="debug-header">
+        <div>
+          <div class="debug-title">Debug Console</div>
+          <div class="debug-hint">Press \` or Ctrl+D to toggle</div>
+        </div>
+        <div class="debug-actions">
+          <button id="debug-copy">Copy</button>
+          <button id="debug-clear">Clear</button>
+          <button id="debug-close">Close</button>
+        </div>
+      </div>
+      <div class="debug-body">
+        <div class="debug-meta">
+          <div class="debug-section">
+            <h4>Session</h4>
+            <div class="debug-kv"><span>Server</span><span id="debug-server"></span></div>
+            <div class="debug-kv"><span>WS</span><span id="debug-ws"></span></div>
+            <div class="debug-kv"><span>Room</span><span id="debug-room"></span></div>
+            <div class="debug-kv"><span>Seat</span><span id="debug-seat"></span></div>
+          </div>
+          <div class="debug-section">
+            <h4>Auth</h4>
+            <div class="debug-kv"><span>User</span><span id="debug-user"></span></div>
+            <div class="debug-kv"><span>Access</span><span id="debug-access"></span></div>
+            <div class="debug-kv"><span>Refresh</span><span id="debug-refresh"></span></div>
+            <div class="debug-kv"><span>Last error</span><span id="debug-error"></span></div>
+          </div>
+        </div>
+        <div class="debug-logs" id="debug-logs"></div>
+      </div>
+    </div>
     <div class="swap-banner" id="swap-banner"></div>
     <div class="upgrade" id="upgrade"></div>
   </div>
@@ -95,6 +129,160 @@ const swapBanner = document.getElementById('swap-banner')!;
 const upgrade = document.getElementById('upgrade')!;
 const seatLabel = document.getElementById('seat-label')!;
 const roomStatus = document.getElementById('room-status')!;
+const debugConsole = document.getElementById('debug-console')!;
+const debugFab = document.getElementById('debug-fab')! as HTMLButtonElement;
+const debugClose = document.getElementById('debug-close')!;
+const debugCopy = document.getElementById('debug-copy')!;
+const debugClear = document.getElementById('debug-clear')!;
+const debugLogs = document.getElementById('debug-logs')!;
+const debugServer = document.getElementById('debug-server')!;
+const debugWs = document.getElementById('debug-ws')!;
+const debugRoom = document.getElementById('debug-room')!;
+const debugSeat = document.getElementById('debug-seat')!;
+const debugUser = document.getElementById('debug-user')!;
+const debugAccess = document.getElementById('debug-access')!;
+const debugRefresh = document.getElementById('debug-refresh')!;
+const debugError = document.getElementById('debug-error')!;
+
+type LogLevel = 'info' | 'warn' | 'error';
+const debugState = {
+  open: false,
+  logs: [] as Array<{ ts: string; level: LogLevel; message: string; data?: unknown }>
+};
+
+function updateDebugMeta() {
+  debugServer.textContent = serverUrl;
+  debugWs.textContent = serverUrl.replace('http', 'ws');
+  debugRoom.textContent = state.room?.id ?? '—';
+  debugSeat.textContent = state.seat;
+  debugUser.textContent = state.playerId || '—';
+  debugAccess.textContent = state.accessToken ? 'set' : 'missing';
+  debugRefresh.textContent = state.refreshToken ? 'set' : 'missing';
+  debugError.textContent = state.lastError || '—';
+}
+
+function formatLogData(data: unknown) {
+  if (data === undefined) return '';
+  if (typeof data === 'string') return data;
+  try {
+    return JSON.stringify(data, null, 2);
+  } catch {
+    return String(data);
+  }
+}
+
+function renderLogs() {
+  debugLogs.innerHTML = '';
+  debugState.logs.forEach((entry) => {
+    const row = document.createElement('div');
+    row.className = `debug-log ${entry.level}`;
+    const header = document.createElement('div');
+    header.className = 'debug-log-header';
+    const ts = document.createElement('span');
+    ts.className = 'debug-log-ts';
+    ts.textContent = entry.ts;
+    const msg = document.createElement('span');
+    msg.className = 'debug-log-msg';
+    msg.textContent = entry.message;
+    header.append(ts, msg);
+    row.append(header);
+    if (entry.data !== undefined) {
+      const pre = document.createElement('pre');
+      pre.textContent = formatLogData(entry.data);
+      row.append(pre);
+    }
+    debugLogs.append(row);
+  });
+  debugLogs.scrollTop = debugLogs.scrollHeight;
+}
+
+function addLog(level: LogLevel, message: string, data?: unknown) {
+  const entry = {
+    ts: new Date().toLocaleTimeString(),
+    level,
+    message,
+    data
+  };
+  debugState.logs.push(entry);
+  if (debugState.logs.length > 200) {
+    debugState.logs.shift();
+  }
+  if (level === 'error') {
+    state.lastError = message;
+  }
+  updateDebugMeta();
+  renderLogs();
+}
+
+function toggleDebug(force?: boolean) {
+  debugState.open = force ?? !debugState.open;
+  debugConsole.classList.toggle('hidden', !debugState.open);
+}
+
+function getSafeHeaders(headers: HeadersInit | undefined) {
+  if (!headers) return undefined;
+  const entries =
+    headers instanceof Headers ? Array.from(headers.entries()) : Array.isArray(headers) ? headers : Object.entries(headers);
+  return Object.fromEntries(
+    entries.map(([key, value]) => [key, key.toLowerCase() === 'authorization' ? 'Bearer ***' : String(value)])
+  );
+}
+
+function createDebugSnapshot() {
+  return JSON.stringify(
+    {
+      time: new Date().toISOString(),
+      serverUrl,
+      wsUrl: serverUrl.replace('http', 'ws'),
+      seat: state.seat,
+      playerId: state.playerId || null,
+      roomId: state.room?.id ?? null,
+      accessToken: state.accessToken ? '[set]' : null,
+      refreshToken: state.refreshToken ? '[set]' : null,
+      lastError: state.lastError || null,
+      logs: debugState.logs.slice(-50)
+    },
+    null,
+    2
+  );
+}
+
+debugFab.addEventListener('click', () => toggleDebug());
+debugClose.addEventListener('click', () => toggleDebug(false));
+debugClear.addEventListener('click', () => {
+  debugState.logs = [];
+  renderLogs();
+});
+debugCopy.addEventListener('click', async () => {
+  try {
+    await navigator.clipboard.writeText(createDebugSnapshot());
+    addLog('info', 'Copied debug snapshot to clipboard.');
+  } catch (error) {
+    addLog('error', 'Failed to copy debug snapshot.', error);
+  }
+});
+
+window.addEventListener('keydown', (event) => {
+  const target = event.target as HTMLElement | null;
+  if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) return;
+  if (event.key === '`' || (event.ctrlKey && event.key.toLowerCase() === 'd')) {
+    event.preventDefault();
+    toggleDebug();
+  }
+});
+
+window.addEventListener('error', (event) => {
+  addLog('error', 'Window error', {
+    message: event.message,
+    source: event.filename,
+    line: event.lineno,
+    column: event.colno
+  });
+});
+
+window.addEventListener('unhandledrejection', (event) => {
+  addLog('error', 'Unhandled rejection', event.reason);
+});
 
 const weaponSelect = document.getElementById('weapon-select')!;
 state.weapons.forEach((name, idx) => {
@@ -112,6 +300,7 @@ function setSeat(seat: SeatType) {
   document.querySelectorAll('.panel').forEach((panel) => panel.classList.remove('active'));
   const panel = document.getElementById(`${seat}-panel`);
   panel?.classList.add('active');
+  updateDebugMeta();
 }
 
 function sendInput(input: PlayerInput) {
@@ -180,28 +369,85 @@ document.querySelectorAll('#support-panel button').forEach((button) => {
   });
 });
 
+async function requestJson(
+  endpoint: string,
+  options: RequestInit,
+  label: string,
+  logOptions?: { redactBody?: boolean }
+) {
+  const url = `${serverUrl}${endpoint}`;
+  const started = performance.now();
+  const safeOptions = {
+    method: options.method ?? 'GET',
+    headers: getSafeHeaders(options.headers),
+    body: logOptions?.redactBody ? '[redacted]' : options.body
+  };
+  addLog('info', `→ ${label}`, { url, options: safeOptions });
+  let response: Response;
+  try {
+    response = await fetch(url, options);
+  } catch (error) {
+    addLog('error', `✖ ${label} network error`, error);
+    throw error;
+  }
+  const text = await response.text();
+  let data: any = undefined;
+  if (text) {
+    try {
+      data = JSON.parse(text);
+    } catch {
+      data = { raw: text };
+    }
+  }
+  const elapsed = Math.round(performance.now() - started);
+  addLog(response.ok ? 'info' : 'error', `← ${label} ${response.status} ${response.statusText} (${elapsed}ms)`, data);
+  return { response, data };
+}
+
 async function auth(endpoint: string, payload: Record<string, string>) {
-  const response = await fetch(`${serverUrl}${endpoint}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  });
-  const data = await response.json();
+  const { response, data } = await requestJson(
+    endpoint,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    },
+    endpoint === '/auth/login' ? 'login' : 'register',
+    { redactBody: true }
+  );
   if (!response.ok) {
-    throw new Error(data.error || 'Auth failed');
+    throw new Error(data?.error || 'Auth failed');
   }
   state.accessToken = data.accessToken;
   state.refreshToken = data.refreshToken;
   localStorage.setItem('accessToken', state.accessToken);
   localStorage.setItem('refreshToken', state.refreshToken);
+  updateDebugMeta();
 }
 
 async function connect(roomId?: string) {
-  if (!state.accessToken) return;
+  if (!state.accessToken) {
+    addLog('warn', 'Connect blocked: missing access token.');
+    return;
+  }
   state.playerId = getTokenPayload(state.accessToken) ?? '';
+  updateDebugMeta();
   const options = { userId: state.playerId };
-  state.room = roomId ? await client.joinById(roomId, options) : await client.joinOrCreate('game', options);
+  addLog('info', 'Connecting to room', { roomId: roomId ?? 'matchmake', userId: state.playerId });
+  try {
+    state.room = roomId ? await client.joinById(roomId, options) : await client.joinOrCreate('game', options);
+  } catch (error) {
+    addLog('error', 'Room connect failed', error);
+    throw error;
+  }
   overlay.classList.add('hidden');
+  updateDebugMeta();
+  state.room.onError((code, message) => {
+    addLog('error', 'Room error', { code, message });
+  });
+  state.room.onLeave((code) => {
+    addLog('warn', 'Room left', { code });
+  });
   state.room.onMessage('gameover', (payload) => {
     upgrade.innerHTML = `<strong>Run ended</strong><span>Score ${payload.score}</span>`;
     upgrade.classList.add('show');
@@ -278,15 +524,29 @@ const joinRoomButton = document.getElementById('join-room')!;
 loginButton.addEventListener('click', async () => {
   const email = (document.getElementById('email') as HTMLInputElement).value;
   const password = (document.getElementById('password') as HTMLInputElement).value;
-  await auth('/auth/login', { email, password });
-  await connect();
+  roomStatus.textContent = '';
+  try {
+    await auth('/auth/login', { email, password });
+    await connect();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Login failed.';
+    roomStatus.textContent = message;
+    addLog('error', 'Login failed', { message });
+  }
 });
 
 registerButton.addEventListener('click', async () => {
   const email = (document.getElementById('email') as HTMLInputElement).value;
   const password = (document.getElementById('password') as HTMLInputElement).value;
-  await auth('/auth/register', { email, password });
-  await connect();
+  roomStatus.textContent = '';
+  try {
+    await auth('/auth/register', { email, password });
+    await connect();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Register failed.';
+    roomStatus.textContent = message;
+    addLog('error', 'Register failed', { message });
+  }
 });
 
 if (state.accessToken) {
@@ -294,18 +554,29 @@ if (state.accessToken) {
 }
 
 quickPlayButton.addEventListener('click', async () => {
-  await connect();
+  roomStatus.textContent = '';
+  try {
+    await connect();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Quick Play failed.';
+    roomStatus.textContent = message;
+    addLog('error', 'Quick Play failed', { message });
+  }
 });
 
 createRoomButton.addEventListener('click', async () => {
   if (!state.accessToken) return;
-  const response = await fetch(`${serverUrl}/matchmake/create`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${state.accessToken}` }
-  });
-  const data = await response.json();
+  roomStatus.textContent = '';
+  const { response, data } = await requestJson(
+    '/matchmake/create',
+    {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${state.accessToken}` }
+    },
+    'create room'
+  );
   if (!response.ok) {
-    roomStatus.textContent = data.error || 'Could not create room.';
+    roomStatus.textContent = data?.error || 'Could not create room.';
     return;
   }
   roomStatus.textContent = `Room code: ${data.code}`;
@@ -315,18 +586,25 @@ createRoomButton.addEventListener('click', async () => {
 joinRoomButton.addEventListener('click', async () => {
   if (!state.accessToken) return;
   const code = (document.getElementById('room-code') as HTMLInputElement).value;
-  const response = await fetch(`${serverUrl}/matchmake/join`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${state.accessToken}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ code })
-  });
-  const data = await response.json();
+  roomStatus.textContent = '';
+  const { response, data } = await requestJson(
+    '/matchmake/join',
+    {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${state.accessToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code })
+    },
+    'join room'
+  );
   if (!response.ok) {
-    roomStatus.textContent = data.error || 'Could not join room.';
+    roomStatus.textContent = data?.error || 'Could not join room.';
     return;
   }
   await connect(data.roomId);
 });
+
+updateDebugMeta();
+addLog('info', 'Debug console ready.');
 
 class GameScene extends Phaser.Scene {
   private ship?: Phaser.GameObjects.Arc;
