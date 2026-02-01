@@ -88,6 +88,7 @@ export class SeatSystem {
       const options = seats.filter((seat) => seat !== current);
       const next = options[Math.floor(this.room.rng() * options.length)];
       humans[0].seat = next;
+      this.room.clearSeatInputs();
       this.room.refreshBots();
       return;
     }
@@ -105,6 +106,7 @@ export class SeatSystem {
       player.seat = shuffledSeats[index % seats.length];
     });
 
+    this.room.clearSeatInputs();
     this.room.refreshBots();
   }
 }

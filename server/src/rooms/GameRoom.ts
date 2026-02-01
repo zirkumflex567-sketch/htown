@@ -1183,6 +1183,10 @@ export class GameRoom extends Room<GameState> {
     this.lastPowerValues = { engines: 0.33, weapons: 0.33, shields: 0.34 };
   }
 
+  clearSeatInputs() {
+    this.inputs.clear();
+  }
+
   private allHumansReady() {
     const humans = Array.from(this.state.players.values()).filter((player) => !player.isBot && player.connected);
     if (!humans.length) return false;
