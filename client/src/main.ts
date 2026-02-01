@@ -463,9 +463,32 @@ if (e2eVisualsEnabled) {
   overlay.classList.add('hidden');
   document.body.classList.add('e2e-scene');
 }
-const seatExpanded = localStorage.getItem('seatExpanded') === 'true';
-document.body.classList.toggle('seat-expanded', seatExpanded);
-seatToggle.dataset.active = seatExpanded ? 'true' : 'false';
+const prefersCoarsePointer = window.matchMedia?.('(pointer: coarse)').matches ?? false;
+const storedSeatExpanded = localStorage.getItem('seatExpanded');
+let seatExpanded = storedSeatExpanded === 'true';
+
+function applySeatExpanded(next: boolean, persist = true) {
+  seatExpanded = next;
+  document.body.classList.toggle('seat-expanded', next);
+  seatToggle.dataset.active = next ? 'true' : 'false';
+  if (persist) {
+    localStorage.setItem('seatExpanded', String(next));
+  }
+}
+
+if (storedSeatExpanded === null) {
+  applySeatExpanded(prefersCoarsePointer);
+} else {
+  applySeatExpanded(seatExpanded, false);
+}
+
+function focus3dView() {
+  if (prefersCoarsePointer) return;
+  const phase = (state.room?.state as { phase?: string } | null)?.phase;
+  if (phase === 'running') {
+    applySeatExpanded(false, false);
+  }
+}
 const settingsInputs = {
   master: document.getElementById('set-master') as HTMLInputElement,
   music: document.getElementById('set-music') as HTMLInputElement,
@@ -1048,9 +1071,7 @@ settingsFab.addEventListener('click', () => {
 
 seatToggle.addEventListener('click', () => {
   const next = !document.body.classList.contains('seat-expanded');
-  document.body.classList.toggle('seat-expanded', next);
-  seatToggle.dataset.active = next ? 'true' : 'false';
-  localStorage.setItem('seatExpanded', String(next));
+  applySeatExpanded(next);
 });
 
 settingsClose.addEventListener('click', () => {
@@ -2262,6 +2283,7 @@ async function connect(roomId?: string, modeHint?: GameMode | null, didRefresh?:
   overlay.classList.add('hidden');
   updateDebugMeta();
   updateRoomLobby();
+  focus3dView();
   state.room.onError((code, message) => {
     addLog('error', 'Room error', { code, message });
   });
@@ -2295,15 +2317,20 @@ async function connect(roomId?: string, modeHint?: GameMode | null, didRefresh?:
     updateLobbyModeLabel();
     syncModeInputs();
   }
-    if (typeof state.room.state.listen === 'function') {
-      state.room.state.listen('mode', (value) => {
-        if (value) {
-          state.mode = value as GameMode;
-          updateLobbyModeLabel();
-          syncModeInputs();
-        }
-      });
-    }
+  if (typeof state.room.state.listen === 'function') {
+    state.room.state.listen('mode', (value) => {
+      if (value) {
+        state.mode = value as GameMode;
+        updateLobbyModeLabel();
+        syncModeInputs();
+      }
+    });
+    state.room.state.listen('phase', (value) => {
+      if (value === 'running') {
+        focus3dView();
+      }
+    });
+  }
   let localPlayerBound = false;
   const bindLocalPlayer = (player: any, key: string) => {
     if (localPlayerBound || key !== state.playerId) return;
