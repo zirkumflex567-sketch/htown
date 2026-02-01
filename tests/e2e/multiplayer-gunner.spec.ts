@@ -17,14 +17,15 @@ test('second player joins as gunner, reticle moves, and fire toggles', async ({ 
 
   const reticle = page2.locator('.reticle');
   const before = await reticle.evaluate((el) => (el as HTMLElement).style.transform);
-  const arenaBox = await page2.locator('#arena').boundingBox();
-  if (!arenaBox) throw new Error('Arena not found');
+  const canvas = page2.locator('#arena canvas[data-engine]');
+  const canvasBox = await canvas.boundingBox();
+  if (!canvasBox) throw new Error('Arena canvas not found');
 
   await page2.click('#arena');
   await page2.waitForTimeout(200);
-  const targetX = arenaBox.x + arenaBox.width * 0.8;
-  const targetY = arenaBox.y + arenaBox.height * 0.25;
-  await page2.dispatchEvent('#arena', 'mousemove', { clientX: targetX, clientY: targetY });
+  const targetX = canvasBox.x + canvasBox.width * 0.8;
+  const targetY = canvasBox.y + canvasBox.height * 0.25;
+  await canvas.dispatchEvent('mousemove', { clientX: targetX, clientY: targetY });
   await page2.waitForTimeout(200);
   const after = await reticle.evaluate((el) => (el as HTMLElement).style.transform);
   expect(after).not.toBe(before);
