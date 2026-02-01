@@ -1,7 +1,27 @@
 import { Room, Client } from '@colyseus/core';
-import { GameState, PlayerState, SeatInputState, ProjectileState, EnemyState, ShipState } from './schema/GameState';
-import { combos, mulberry32, statusEffects, weapons as weaponDefs, upgrades as upgradeDefs } from '@htown/shared';
-import type { GameMode, PlayerInput, SeatType } from '@htown/shared';
+import {
+  GameState,
+  PlayerState,
+  SeatInputState,
+  ProjectileState,
+  EnemyState,
+  ShipState,
+  LootModState,
+  LootWeaponState,
+  LootUpgradeState,
+  LootSynergyState
+} from './schema/GameState';
+import {
+  combos,
+  evaluateSynergies,
+  generateRunLoadout,
+  mulberry32,
+  statusEffects,
+  tallyTags,
+  weapons as weaponDefs,
+  upgrades as upgradeDefs
+} from '@htown/shared';
+import type { GameMode, PlayerInput, RolledUpgrade, RolledWeapon, RunLoadout, SeatType } from '@htown/shared';
 import { SeatSystem } from '../systems/SeatSystem';
 import { BotSystem } from '../systems/BotSystem';
 import { EnemySystem } from '../systems/EnemySystem';
@@ -14,6 +34,11 @@ const statusById = new Map(statusEffects.map((effect) => [effect.id, effect]));
 const comboById = new Map(combos.map((combo) => [combo.id, combo]));
 
 export class GameRoom extends Room<GameState> {
+  static acceptingPlayers = true;
+  static setAcceptingPlayers(value: boolean) {
+    GameRoom.acceptingPlayers = value;
+  }
+
   state = new GameState();
   inputs = new Map<SeatType, PlayerInput>();
   rng = mulberry32(Math.floor(Math.random() * 999999));
@@ -71,6 +96,9 @@ export class GameRoom extends Room<GameState> {
   private sessionToPlayer = new Map<string, string>();
   private projectileCounter = 0;
   private gunnerHeat = 0;
+  private runLoadout: RunLoadout | null = null;
+  private revealedWeapons = 0;
+  private revealedUpgrades = 0;
   invulUntil = 0;
   lastWallHit = 0;
   killCount = 0;
@@ -95,9 +123,8 @@ export class GameRoom extends Room<GameState> {
     if (this.listing) {
       this.setMetadata({ mode: this.mode });
     }
-    if (this.mode !== 'solo') {
-      this.seedSeatInputs();
-    }
+    this.seedSeatInputs();
+    this.rollRunLoadout();
     this.setSimulationInterval((deltaTime) => this.update(deltaTime), 50);
 
     this.onMessage('input', (client, input: PlayerInput) => {
@@ -136,6 +163,9 @@ export class GameRoom extends Room<GameState> {
   }
 
   async onAuth(client: Client, options?: { accessToken?: string; userId?: string }) {
+    if (!GameRoom.acceptingPlayers) {
+      throw new Error('SERVER_PAUSED');
+    }
     const token = options?.accessToken;
     if (!token || typeof token !== 'string') {
       throw new Error('UNAUTHORIZED');
@@ -280,6 +310,7 @@ export class GameRoom extends Room<GameState> {
         this.lastBoostByShip.set(playerId, false);
         this.lastHandbrakeByShip.set(playerId, false);
       }
+      this.rollRunLoadout();
     }
   }
 
@@ -331,6 +362,7 @@ export class GameRoom extends Room<GameState> {
       this.killCount = 0;
       this.bossKillCount = 0;
       this.resetSeatStats();
+      this.rollRunLoadout();
     }
   }
 
@@ -1355,6 +1387,10 @@ export class GameRoom extends Room<GameState> {
     if (source !== 'boss' && this.rng() > chance) return;
     this.lastUpgradeDropAt = now;
     this.upgradeSystem.rollUpgrades();
+    this.revealLoot({
+      upgrades: 1,
+      weapons: this.revealedWeapons === 0 || source === 'boss' ? 1 : 0
+    });
   }
 
   applyUpgrade(upgradeId: string) {
@@ -1397,6 +1433,103 @@ export class GameRoom extends Room<GameState> {
         })
       });
     }
+  }
+
+  private rollRunLoadout() {
+    const seed = Math.floor(this.rng() * 999999999);
+    this.runLoadout = generateRunLoadout(seed, { weaponCount: 2, upgradeCount: 10 });
+    this.revealedWeapons = 0;
+    this.revealedUpgrades = 0;
+    this.state.loot.seed = 0;
+    this.state.loot.weapons.clear();
+    this.state.loot.upgrades.clear();
+    this.state.loot.synergies.clear();
+  }
+
+  private revealLoot(options: { weapons?: number; upgrades?: number } = {}) {
+    if (!this.runLoadout) return;
+    const weaponCount = options.weapons ?? 0;
+    const upgradeCount = options.upgrades ?? 0;
+    let revealedAny = false;
+
+    const nextWeaponCount = Math.min(this.runLoadout.weapons.length, this.revealedWeapons + weaponCount);
+    for (let i = this.revealedWeapons; i < nextWeaponCount; i += 1) {
+      const weapon = this.runLoadout.weapons[i];
+      if (weapon) {
+        this.state.loot.weapons.push(this.buildWeaponState(weapon));
+        revealedAny = true;
+      }
+    }
+    this.revealedWeapons = nextWeaponCount;
+
+    const nextUpgradeCount = Math.min(this.runLoadout.upgrades.length, this.revealedUpgrades + upgradeCount);
+    for (let i = this.revealedUpgrades; i < nextUpgradeCount; i += 1) {
+      const upgrade = this.runLoadout.upgrades[i];
+      if (upgrade) {
+        this.state.loot.upgrades.push(this.buildUpgradeState(upgrade));
+        revealedAny = true;
+      }
+    }
+    this.revealedUpgrades = nextUpgradeCount;
+
+    this.refreshSynergies();
+  }
+
+  private refreshSynergies() {
+    this.state.loot.synergies.clear();
+    if (!this.runLoadout) return;
+    const weapons = this.runLoadout.weapons.slice(0, this.revealedWeapons);
+    const upgrades = this.runLoadout.upgrades.slice(0, this.revealedUpgrades);
+    if (!weapons.length && !upgrades.length) return;
+    const tagCounts = tallyTags(weapons, upgrades);
+    const synergies = evaluateSynergies(tagCounts);
+    synergies.forEach((synergy) => {
+      const synergyState = new LootSynergyState();
+      synergyState.name = synergy.name;
+      synergyState.description = synergy.description;
+      synergy.requirements.forEach((req) => {
+        const label = req.count && req.count > 1 ? `${req.tag} x${req.count}` : req.tag;
+        synergyState.requirements.push(label);
+      });
+      if (synergy.anyOf?.length) {
+        const min = synergy.minAnyOf ?? 1;
+        synergyState.requirements.push(`any ${min}: ${synergy.anyOf.join(' / ')}`);
+      }
+      this.state.loot.synergies.push(synergyState);
+    });
+  }
+
+  private buildWeaponState(weapon: RolledWeapon) {
+    const weaponState = new LootWeaponState();
+    weaponState.name = weapon.name;
+    weaponState.rarity = weapon.rarity;
+    weaponState.powerScore = weapon.powerScore;
+    weapon.tags.forEach((tag) => weaponState.tags.push(tag));
+    Object.entries(weapon.stats).forEach(([key, value]) => weaponState.stats.set(key, value));
+
+    weapon.mods.forEach((mod) => {
+      const modState = new LootModState();
+      modState.name = mod.name;
+      modState.description = mod.description;
+      mod.tags.forEach((tag) => modState.tags.push(tag));
+      weaponState.mods.push(modState);
+    });
+
+    if (weapon.quirk) {
+      weaponState.quirkName = weapon.quirk.name;
+      weaponState.quirkDescription = weapon.quirk.description;
+      weapon.quirk.tags.forEach((tag) => weaponState.quirkTags.push(tag));
+    }
+    return weaponState;
+  }
+
+  private buildUpgradeState(upgrade: RolledUpgrade) {
+    const upgradeState = new LootUpgradeState();
+    upgradeState.name = upgrade.name;
+    upgradeState.rarity = upgrade.rarity;
+    upgradeState.description = upgrade.description;
+    upgrade.tags.forEach((tag) => upgradeState.tags.push(tag));
+    return upgradeState;
   }
 }
 

@@ -133,6 +133,26 @@ app.innerHTML = `
               <div class="crew-tile" id="crew-power"><span class="crew-seat">Power</span><span class="crew-tag" id="crew-power-tag"></span><div class="crew-meta" id="crew-power-meta"></div></div>
               <div class="crew-tile" id="crew-systems"><span class="crew-seat">Systems</span><span class="crew-tag" id="crew-systems-tag"></span><div class="crew-meta" id="crew-systems-meta"></div></div>
               <div class="crew-tile" id="crew-support"><span class="crew-seat">Support</span><span class="crew-tag" id="crew-support-tag"></span><div class="crew-meta" id="crew-support-meta"></div></div>
+              <div class="loadout-card" id="loadout-card">
+                <div class="loadout-header">
+                  <span>Run Intel</span>
+                  <span class="loadout-seed" id="loadout-seed"></span>
+                </div>
+                <div class="loadout-body">
+                  <div class="loadout-section">
+                    <h4>Weapons</h4>
+                    <div class="loadout-weapons" id="loadout-weapons"></div>
+                  </div>
+                  <div class="loadout-section">
+                    <h4>Upgrades</h4>
+                    <div class="loadout-upgrades" id="loadout-upgrades"></div>
+                  </div>
+                  <div class="loadout-section">
+                    <h4>Synergies</h4>
+                    <div class="loadout-synergies" id="loadout-synergies"></div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -319,6 +339,10 @@ const crewGunnerMeta = document.getElementById('crew-gunner-meta')!;
 const crewPowerMeta = document.getElementById('crew-power-meta')!;
 const crewSystemsMeta = document.getElementById('crew-systems-meta')!;
 const crewSupportMeta = document.getElementById('crew-support-meta')!;
+const loadoutSeed = document.getElementById('loadout-seed')!;
+const loadoutWeapons = document.getElementById('loadout-weapons')!;
+const loadoutUpgrades = document.getElementById('loadout-upgrades')!;
+const loadoutSynergies = document.getElementById('loadout-synergies')!;
 const inputStateLabel = document.getElementById('input-state')!;
 const keyStateLabel = document.getElementById('key-state')!;
 const roomStatus = document.getElementById('room-status')!;
@@ -1538,6 +1562,170 @@ function showGameover(payload: any) {
   setTimeout(() => upgrade.classList.remove('show'), 4000);
 }
 
+let lastLoadoutSignature = '';
+
+function escapeHtml(value: string) {
+  return value
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
+
+function toArray<T>(value: any): T[] {
+  if (!value) return [];
+  return Array.isArray(value) ? value : Array.from(value as Iterable<T>);
+}
+
+function getStatValue(stats: any, key: string) {
+  if (!stats) return undefined;
+  if (typeof stats.get === 'function') return stats.get(key);
+  return stats[key];
+}
+
+function formatStatValue(key: string, value: number) {
+  if (!Number.isFinite(value)) return '-';
+  if (key === 'cooldownMs' || key === 'reloadMs') return `${(value / 1000).toFixed(2)}s`;
+  if (key === 'critChance') return `${Math.round(value * 100)}%`;
+  if (key === 'critMultiplier') return `${value.toFixed(2)}x`;
+  return Math.round(value).toString();
+}
+
+function renderTagChips(tags: string[], limit = 7) {
+  const safe = tags.filter(Boolean);
+  const visible = safe.slice(0, limit);
+  const extra = safe.length - visible.length;
+  const chips = visible.map((tag) => `<span class="tag-badge">${escapeHtml(tag)}</span>`).join('');
+  return extra > 0 ? `${chips}<span class="tag-badge tag-more">+${extra}</span>` : chips;
+}
+
+function renderWeaponCard(weapon: any) {
+  const rarity = weapon?.rarity ?? 'common';
+  const name = escapeHtml(weapon?.name ?? 'Unknown');
+  const tags = toArray<string>(weapon?.tags);
+  const mods = toArray<any>(weapon?.mods);
+  const quirkName = weapon?.quirkName ?? '';
+  const quirkDesc = weapon?.quirkDescription ?? '';
+
+  const statOrder: Array<[string, string]> = [
+    ['damage', 'DMG'],
+    ['cooldownMs', 'CD'],
+    ['projectileCount', 'PEL'],
+    ['burstCount', 'BST'],
+    ['range', 'RNG'],
+    ['critChance', 'CRIT'],
+    ['critMultiplier', 'CRITx'],
+    ['magazine', 'MAG'],
+    ['reloadMs', 'RLD']
+  ];
+
+  const statLines = statOrder
+    .map(([key, label]) => {
+      const value = getStatValue(weapon?.stats, key);
+      if (value === undefined) return '';
+      return `<div class="stat-chip"><span>${label}</span><strong>${formatStatValue(key, value)}</strong></div>`;
+    })
+    .filter(Boolean)
+    .join('');
+
+  const powerScore = Number.isFinite(weapon?.powerScore)
+    ? `<div class="stat-chip"><span>PWR</span><strong>${Math.round(weapon.powerScore)}</strong></div>`
+    : '';
+
+  const modItems = mods.length
+    ? mods
+        .map((mod) => {
+          const modName = escapeHtml(mod?.name ?? 'Mod');
+          const modDesc = escapeHtml(mod?.description ?? '');
+          return `<span class="mod-pill" title="${modDesc}">${modName}</span>`;
+        })
+        .join('')
+    : `<span class="mod-empty">No mods</span>`;
+
+  const quirkItem = quirkName
+    ? `<span class="mod-pill quirk" title="${escapeHtml(quirkDesc)}">Quirk: ${escapeHtml(quirkName)}</span>`
+    : '';
+
+  return `
+    <div class="loadout-weapon">
+      <div class="loadout-title">
+        <span class="weapon-name">${name}</span>
+        <span class="rarity ${escapeHtml(rarity)}">${escapeHtml(rarity)}</span>
+      </div>
+      <div class="stat-grid">${statLines}${powerScore}</div>
+      <div class="tag-badges">${renderTagChips(tags)}</div>
+      <div class="mod-list">${modItems}${quirkItem}</div>
+    </div>
+  `;
+}
+
+function renderUpgradeCard(upgrade: any) {
+  const rarity = upgrade?.rarity ?? 'common';
+  const name = escapeHtml(upgrade?.name ?? 'Upgrade');
+  const description = escapeHtml(upgrade?.description ?? '');
+  const tags = toArray<string>(upgrade?.tags);
+  return `
+    <div class="loadout-upgrade">
+      <div class="loadout-title">
+        <span>${name}</span>
+        <span class="rarity ${escapeHtml(rarity)}">${escapeHtml(rarity)}</span>
+      </div>
+      <div class="loadout-desc">${description}</div>
+      <div class="tag-badges">${renderTagChips(tags, 6)}</div>
+    </div>
+  `;
+}
+
+function renderSynergyCard(synergy: any) {
+  const name = escapeHtml(synergy?.name ?? 'Synergy');
+  const description = escapeHtml(synergy?.description ?? '');
+  const requirements = toArray<string>(synergy?.requirements);
+  return `
+    <div class="loadout-synergy">
+      <div class="loadout-title">
+        <span>${name}</span>
+      </div>
+      <div class="loadout-desc">${description}</div>
+      <div class="tag-badges">${renderTagChips(requirements, 8)}</div>
+    </div>
+  `;
+}
+
+function renderLoadout() {
+  const loot = (state.room?.state as any)?.loot;
+  if (!loot) {
+    loadoutSeed.textContent = 'Seed —';
+    loadoutWeapons.innerHTML = `<div class="loadout-empty">Waiting for loadout...</div>`;
+    loadoutUpgrades.innerHTML = `<div class="loadout-empty">Waiting for loadout...</div>`;
+    loadoutSynergies.innerHTML = `<div class="loadout-empty">Waiting for loadout...</div>`;
+    return;
+  }
+
+  loadoutSeed.textContent = loot.seed ? `Seed ${loot.seed}` : 'Seed —';
+
+  const weapons = toArray<any>(loot.weapons);
+  const upgrades = toArray<any>(loot.upgrades);
+  const synergies = toArray<any>(loot.synergies);
+
+  const weaponSig = weapons.map((weapon) => `${weapon?.name ?? ''}:${weapon?.rarity ?? ''}`).join('|');
+  const upgradeSig = upgrades.map((upgrade) => `${upgrade?.name ?? ''}:${upgrade?.rarity ?? ''}`).join('|');
+  const synergySig = synergies.map((synergy) => `${synergy?.name ?? ''}`).join('|');
+  const signature = `${loot.seed ?? 0}::${weaponSig}::${upgradeSig}::${synergySig}`;
+  if (signature === lastLoadoutSignature) return;
+  lastLoadoutSignature = signature;
+
+  loadoutWeapons.innerHTML = weapons.length
+    ? weapons.map(renderWeaponCard).join('')
+    : `<div class="loadout-empty">No intel yet.</div>`;
+  loadoutUpgrades.innerHTML = upgrades.length
+    ? upgrades.map(renderUpgradeCard).join('')
+    : `<div class="loadout-empty">No intel yet.</div>`;
+  loadoutSynergies.innerHTML = synergies.length
+    ? synergies.map(renderSynergyCard).join('')
+    : `<div class="loadout-empty">No intel yet.</div>`;
+}
+
 async function connect(roomId?: string) {
   if (!state.accessToken) {
     addLog('warn', 'Connect blocked: missing access token.');
@@ -1590,6 +1778,7 @@ async function connect(roomId?: string) {
       }
     }
     lastStateAt = now;
+    renderLoadout();
   });
   const roomMode = (state.room.state as { mode?: GameMode }).mode;
   if (roomMode) state.mode = roomMode;

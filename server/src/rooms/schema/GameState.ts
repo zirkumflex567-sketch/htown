@@ -95,6 +95,44 @@ export class UpgradeState extends Schema {
   @type('string') seat = 'all';
 }
 
+export class LootModState extends Schema {
+  @type('string') name = '';
+  @type('string') description = '';
+  @type(['string']) tags = new ArraySchema<string>();
+}
+
+export class LootWeaponState extends Schema {
+  @type('string') name = '';
+  @type('string') rarity = 'common';
+  @type('number') powerScore = 0;
+  @type(['string']) tags = new ArraySchema<string>();
+  @type({ map: 'number' }) stats = new MapSchema<number>();
+  @type([LootModState]) mods = new ArraySchema<LootModState>();
+  @type('string') quirkName = '';
+  @type('string') quirkDescription = '';
+  @type(['string']) quirkTags = new ArraySchema<string>();
+}
+
+export class LootUpgradeState extends Schema {
+  @type('string') name = '';
+  @type('string') rarity = 'common';
+  @type('string') description = '';
+  @type(['string']) tags = new ArraySchema<string>();
+}
+
+export class LootSynergyState extends Schema {
+  @type('string') name = '';
+  @type('string') description = '';
+  @type(['string']) requirements = new ArraySchema<string>();
+}
+
+export class LootState extends Schema {
+  @type('number') seed = 0;
+  @type([LootWeaponState]) weapons = new ArraySchema<LootWeaponState>();
+  @type([LootUpgradeState]) upgrades = new ArraySchema<LootUpgradeState>();
+  @type([LootSynergyState]) synergies = new ArraySchema<LootSynergyState>();
+}
+
 export class ProjectileState extends Schema {
   @type('string') id = '';
   @type('string') kind = 'mg';
@@ -144,6 +182,7 @@ export class GameState extends Schema {
   @type(SystemsState) systems = new SystemsState();
   @type(SupportState) support = new SupportState();
   @type([UpgradeState]) upgradeChoices = new ArraySchema<UpgradeState>();
+  @type(LootState) loot = new LootState();
   @type('number') score = 0;
   @type('number') wave = 1;
   @type('number') timeSurvived = 0;

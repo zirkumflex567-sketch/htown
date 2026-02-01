@@ -336,6 +336,209 @@ body[data-seat='support'] #support-panel {
   gap: 10px;
 }
 
+.loadout-card {
+  flex: 1;
+  min-height: 180px;
+  background: linear-gradient(160deg, rgba(14, 20, 34, 0.95), rgba(9, 13, 22, 0.95));
+  border: 1px solid rgba(90, 120, 160, 0.25);
+  border-radius: 14px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow: hidden;
+}
+
+.loadout-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  font-weight: 700;
+  color: rgba(230, 240, 255, 0.85);
+}
+
+.loadout-seed {
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+  opacity: 0.6;
+}
+
+.loadout-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.loadout-section {
+  display: grid;
+  gap: 6px;
+}
+
+.loadout-section h4 {
+  margin: 0;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: rgba(230, 240, 255, 0.7);
+}
+
+.loadout-weapons,
+.loadout-upgrades,
+.loadout-synergies {
+  display: grid;
+  gap: 8px;
+}
+
+.loadout-weapon,
+.loadout-upgrade,
+.loadout-synergy {
+  background: rgba(12, 18, 30, 0.75);
+  border: 1px solid rgba(90, 120, 160, 0.2);
+  border-radius: 10px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.loadout-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.74rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.weapon-name {
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+}
+
+.rarity {
+  font-size: 0.56rem;
+  padding: 2px 6px;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(120, 150, 200, 0.25);
+  color: rgba(230, 240, 255, 0.85);
+}
+
+.rarity.uncommon {
+  color: #7dffb3;
+  border-color: rgba(90, 220, 150, 0.5);
+}
+
+.rarity.rare {
+  color: #7bb8ff;
+  border-color: rgba(90, 150, 230, 0.5);
+}
+
+.rarity.epic {
+  color: #c08bff;
+  border-color: rgba(160, 110, 255, 0.55);
+}
+
+.rarity.legendary {
+  color: #ffc979;
+  border-color: rgba(255, 190, 90, 0.55);
+}
+
+.rarity.mythic {
+  color: #ff7a9b;
+  border-color: rgba(255, 120, 160, 0.6);
+}
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px;
+  font-size: 0.6rem;
+}
+
+.stat-chip {
+  background: rgba(6, 10, 18, 0.7);
+  border: 1px solid rgba(90, 120, 160, 0.2);
+  border-radius: 8px;
+  padding: 4px 6px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.stat-chip span {
+  opacity: 0.6;
+}
+
+.stat-chip strong {
+  font-weight: 600;
+}
+
+.tag-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.tag-badge {
+  font-size: 0.54rem;
+  padding: 2px 6px;
+  border-radius: 999px;
+  border: 1px solid rgba(120, 150, 200, 0.28);
+  background: rgba(8, 12, 22, 0.7);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.tag-badge.tag-more {
+  opacity: 0.7;
+}
+
+.mod-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.mod-pill {
+  font-size: 0.54rem;
+  padding: 2px 6px;
+  border-radius: 999px;
+  border: 1px solid rgba(120, 150, 200, 0.2);
+  background: rgba(20, 30, 50, 0.6);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.mod-pill.quirk {
+  border-color: rgba(255, 180, 120, 0.5);
+  color: #ffd3a6;
+}
+
+.mod-empty {
+  font-size: 0.58rem;
+  opacity: 0.6;
+}
+
+.loadout-desc {
+  font-size: 0.66rem;
+  line-height: 1.3;
+  color: rgba(230, 240, 255, 0.75);
+}
+
+.loadout-empty {
+  font-size: 0.62rem;
+  opacity: 0.6;
+}
+
 @media (pointer: fine) and (min-width: 900px) {
   body:not(.seat-expanded) .seat-layout {
     left: auto;
@@ -1179,6 +1382,15 @@ input[type='range'] {
 
   .crew-tile {
     flex: 1 1 calc(50% - 10px);
+  }
+
+  .loadout-card {
+    flex: 1 1 100%;
+    min-height: 160px;
+  }
+
+  .stat-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .combo-toast {
