@@ -22,7 +22,9 @@ test('second player joins as gunner, reticle moves, and fire toggles', async ({ 
 
   await page2.click('#arena');
   await page2.waitForTimeout(200);
-  await page2.mouse.move(arenaBox.x + arenaBox.width * 0.8, arenaBox.y + arenaBox.height * 0.25);
+  const targetX = arenaBox.x + arenaBox.width * 0.8;
+  const targetY = arenaBox.y + arenaBox.height * 0.25;
+  await page2.dispatchEvent('#arena', 'mousemove', { clientX: targetX, clientY: targetY });
   await page2.waitForTimeout(200);
   const after = await reticle.evaluate((el) => (el as HTMLElement).style.transform);
   expect(after).not.toBe(before);
