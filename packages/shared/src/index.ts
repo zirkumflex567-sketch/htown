@@ -251,6 +251,37 @@ export type UpdateStatus = {
   commit?: string;
 };
 
+export type DataSource = {
+  id: string;
+  label: string;
+};
+
+export type DataColumn = {
+  name: string;
+  type: string;
+  notNull: boolean;
+  primaryKey: boolean;
+  editable: boolean;
+};
+
+export type DataTable = {
+  name: string;
+  primaryKey: string | null;
+  columns: DataColumn[];
+  canInsert: boolean;
+  canUpdate: boolean;
+  canDelete: boolean;
+};
+
+export type DataRow = Record<string, any>;
+
+export type AssetEntry = {
+  path: string;
+  url: string;
+  size: number;
+  updatedAt: string;
+};
+
 export type ListQuery = {
   q?: string;
   page?: number;

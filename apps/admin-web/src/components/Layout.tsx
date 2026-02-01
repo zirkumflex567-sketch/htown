@@ -8,6 +8,8 @@ const links = [
   { to: '/rooms', label: 'Rooms' },
   { to: '/matches', label: 'Matches' },
   { to: '/config', label: 'Config' },
+  { to: '/data', label: 'Data' },
+  { to: '/assets', label: 'Assets' },
   { to: '/audit', label: 'Audit' },
   { to: '/admin-users', label: 'Admin Users' }
 ];

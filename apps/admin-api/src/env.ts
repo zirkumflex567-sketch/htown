@@ -26,5 +26,7 @@ export const env = {
   gameAdapter: (process.env.ADMIN_GAME_ADAPTER ?? 'stub') as 'stub' | 'none',
   webhookSecret: process.env.ADMIN_WEBHOOK_SECRET ?? '',
   webhookBranch: process.env.ADMIN_WEBHOOK_BRANCH ?? 'refs/heads/main',
-  webhookRepo: process.env.ADMIN_WEBHOOK_REPO ?? ''
+  webhookRepo: process.env.ADMIN_WEBHOOK_REPO ?? '',
+  gameDbPath: process.env.ADMIN_GAME_DB_PATH ?? '',
+  assetDir: process.env.ADMIN_ASSET_DIR ?? '/opt/htown/uploads'
 };

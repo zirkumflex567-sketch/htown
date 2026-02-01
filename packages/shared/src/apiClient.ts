@@ -5,6 +5,7 @@ import type {
   ConfigPublishRequest,
   ConfigRollbackRequest,
   Paginated,
+  Pagination,
   Player,
   Room,
   Match,
@@ -20,9 +21,13 @@ import type {
   MetricsStatus,
   HealthStatus,
   SessionInfo,
-  LogEntry
+  LogEntry,
+  DataSource,
+  DataTable,
+  DataRow,
+  AssetEntry,
+  UpdateStatus
 } from './index';
-import type { UpdateStatus } from './index';
 
 export type ApiClientOptions = {
   baseUrl: string;
@@ -42,9 +47,11 @@ export class AdminApiClient {
   }
 
   private async request<T>(path: string, options: RequestInit = {}) {
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json'
-    };
+    const headers: Record<string, string> = {};
+    const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData;
+    if (!isFormData) {
+      headers['Content-Type'] = 'application/json';
+    }
     const token = this.getAccessToken();
     if (token) headers.Authorization = `Bearer ${token}`;
 
@@ -234,6 +241,65 @@ export class AdminApiClient {
     return this.request<{ id: string }>('/admin/users', {
       method: 'POST',
       body: JSON.stringify(payload)
+    });
+  }
+
+  listDataSources() {
+    return this.request<{ sources: DataSource[] }>('/admin/data/sources');
+  }
+
+  listDataTables(source: string) {
+    return this.request<{ tables: DataTable[] }>(`/admin/data/tables?source=${encodeURIComponent(source)}`);
+  }
+
+  listDataRows(params: { source: string; table: string; page?: number; pageSize?: number; q?: string }) {
+    const qs = new URLSearchParams();
+    qs.set('source', params.source);
+    qs.set('table', params.table);
+    if (params.page) qs.set('page', String(params.page));
+    if (params.pageSize) qs.set('pageSize', String(params.pageSize));
+    if (params.q) qs.set('q', params.q);
+    return this.request<{ data: DataRow[]; pagination: Pagination; primaryKey: string | null }>(
+      `/admin/data/rows?${qs.toString()}`
+    );
+  }
+
+  updateDataRow(payload: { source: string; table: string; id: any; changes: Record<string, any> }) {
+    return this.request<{ ok: boolean }>('/admin/data/update', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+  }
+
+  insertDataRow(payload: { source: string; table: string; record: Record<string, any> }) {
+    return this.request<{ ok: boolean }>('/admin/data/insert', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+  }
+
+  deleteDataRow(payload: { source: string; table: string; id: any }) {
+    return this.request<{ ok: boolean }>('/admin/data/delete', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+  }
+
+  listAssets() {
+    return this.request<{ data: AssetEntry[] }>('/admin/assets');
+  }
+
+  uploadAsset(formData: FormData) {
+    return this.request<{ ok: boolean; asset: AssetEntry }>('/admin/assets', {
+      method: 'POST',
+      body: formData
+    });
+  }
+
+  deleteAsset(path: string) {
+    return this.request<{ ok: boolean }>('/admin/assets', {
+      method: 'DELETE',
+      body: JSON.stringify({ path })
     });
   }
 

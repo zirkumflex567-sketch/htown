@@ -9,6 +9,8 @@ import PlayersPage from './routes/PlayersPage';
 import RoomsPage from './routes/RoomsPage';
 import MatchesPage from './routes/MatchesPage';
 import ConfigPage from './routes/ConfigPage';
+import DataPage from './routes/DataPage';
+import AssetsPage from './routes/AssetsPage';
 import AuditPage from './routes/AuditPage';
 import AdminUsersPage from './routes/AdminUsersPage';
 import ChangePasswordBanner from './routes/ChangePasswordBanner';
@@ -45,6 +47,8 @@ export default function App() {
                   <Route path="/rooms" element={<RoomsPage />} />
                   <Route path="/matches" element={<MatchesPage />} />
                   <Route path="/config" element={<ConfigPage />} />
+                  <Route path="/data" element={<DataPage />} />
+                  <Route path="/assets" element={<AssetsPage />} />
                   <Route path="/audit" element={<AuditPage />} />
                   <Route path="/admin-users" element={<AdminUsersPage />} />
                 </Routes>

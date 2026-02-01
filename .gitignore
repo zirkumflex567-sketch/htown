@@ -10,6 +10,7 @@ apps/admin-api/data/
 apps/admin-api/logs/
 packages/shared/dist/
 logs/
+uploads/
 # local asset stash
 assetsext/
 playwright-report/
