@@ -5,6 +5,11 @@ node_modules/
 server/data/
 server/.env
 client/dist/
+apps/admin-web/dist/
+apps/admin-api/data/
+apps/admin-api/logs/
+packages/shared/dist/
+logs/
 # local asset stash
 assetsext/
 playwright-report/
