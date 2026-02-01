@@ -19,12 +19,14 @@ const e2eSeat = e2eSeatParam && ['pilot', 'gunner', 'power', 'systems', 'support
   ? (e2eSeatParam as SeatType)
   : null;
 const serverUrl = import.meta.env.VITE_SERVER_URL ?? `http://${defaultServerHost}:2567`;
+const adminUrl = import.meta.env.VITE_ADMIN_URL ?? `${window.location.origin}/admin`;
 const client = new Client(serverUrl.replace('http', 'ws'));
 
 const state = {
   room: null as null | import('colyseus.js').Room,
   seat: 'pilot' as SeatType,
   mode: 'crew' as GameMode,
+  userEmail: localStorage.getItem('userEmail') ?? '',
   accessToken: localStorage.getItem('accessToken') ?? '',
   refreshToken: localStorage.getItem('refreshToken') ?? '',
   playerId: '' as string,
@@ -224,6 +226,7 @@ app.innerHTML = `
     <button class="settings-fab" id="settings-fab" title="Settings">Settings</button>
     <button class="stats-fab" id="stats-fab" title="Stats">Stats</button>
     <button class="menu-fab" id="menu-fab" title="Menu">Menu</button>
+    <button class="admin-fab hidden" id="admin-fab" title="Admin Panel">Admin</button>
     <button class="seat-toggle" id="seat-toggle" title="Seat Controls">Seats</button>
     <div class="debug-console hidden" id="debug-console">
       <div class="debug-header">
@@ -434,6 +437,7 @@ const settingsClose = document.getElementById('settings-close')! as HTMLButtonEl
 const statsFab = document.getElementById('stats-fab')! as HTMLButtonElement;
 const statsOverlay = document.getElementById('stats-overlay')!;
 const statsClose = document.getElementById('stats-close')! as HTMLButtonElement;
+const adminFab = document.getElementById('admin-fab')! as HTMLButtonElement;
 const summaryOverlay = document.getElementById('summary-overlay')!;
 const summaryMode = document.getElementById('summary-mode')!;
 const summaryScore = document.getElementById('summary-score')!;
@@ -524,6 +528,14 @@ let authActionButtons: HTMLButtonElement[] = [];
 let authInputs: HTMLInputElement[] = [];
 let refreshPromise: Promise<boolean> | null = null;
 
+function isAdminUser() {
+  return state.userEmail.trim().toLowerCase() === 'zirkumflex567@gmail.com';
+}
+
+function syncAdminButton() {
+  adminFab.classList.toggle('hidden', !isAdminUser());
+}
+
 function setLobbyBusy(busy: boolean, message?: string) {
   lobbyActionButtons.forEach((button) => {
     button.disabled = busy;
@@ -576,6 +588,7 @@ async function refreshSession() {
       localStorage.setItem('accessToken', state.accessToken);
       localStorage.setItem('refreshToken', state.refreshToken);
       updateDebugMeta();
+      syncAdminButton();
       return true;
     } catch {
       return false;
@@ -586,9 +599,12 @@ async function refreshSession() {
   if (!result) {
     state.accessToken = '';
     state.refreshToken = '';
+    state.userEmail = '';
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
+    localStorage.removeItem('userEmail');
     updateDebugMeta();
+    syncAdminButton();
     if (!e2eVisualsEnabled) {
       setOverlayScreen('login');
     }
@@ -1015,6 +1031,10 @@ settingsFab.addEventListener('click', () => {
 
   menuFab.addEventListener('click', () => {
     void leaveRoomToMenu();
+  });
+
+  adminFab.addEventListener('click', () => {
+    window.open(adminUrl, '_blank');
   });
 
   roomReadyButton.addEventListener('click', () => {
@@ -1959,7 +1979,12 @@ async function auth(endpoint: string, payload: Record<string, string>) {
   state.refreshToken = data.refreshToken;
   localStorage.setItem('accessToken', state.accessToken);
   localStorage.setItem('refreshToken', state.refreshToken);
+  if (payload.email) {
+    state.userEmail = payload.email;
+    localStorage.setItem('userEmail', state.userEmail);
+  }
   updateDebugMeta();
+  syncAdminButton();
   if (!e2eVisualsEnabled) {
     setOverlayScreen(e2eMode ? 'lobby' : 'menu');
   }
@@ -2446,9 +2471,12 @@ const passwordInput = document.getElementById('password') as HTMLInputElement;
     }
     state.accessToken = '';
     state.refreshToken = '';
+    state.userEmail = '';
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
+    localStorage.removeItem('userEmail');
     updateDebugMeta();
+    syncAdminButton();
     setOverlayScreen('login');
   });
 
@@ -2589,6 +2617,7 @@ browseRoomsButton.addEventListener('click', async () => {
 });
 
 updateDebugMeta();
+syncAdminButton();
 addLog('info', 'Debug console ready.');
 
 const arena = document.getElementById('arena')!;
