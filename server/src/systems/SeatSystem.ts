@@ -14,8 +14,15 @@ export class SeatSystem {
     this.scheduleNextSwap();
   }
 
-  assignSeat(clientId: string) {
-    const taken = new Set(Array.from(this.room.state.players.values()).map((player) => player.seat));
+  assignSeat(clientId: string, preferred?: SeatType) {
+    const taken = new Set(
+      Array.from(this.room.state.players.values())
+        .filter((player) => !player.isBot)
+        .map((player) => player.seat)
+    );
+    if (preferred && !taken.has(preferred)) {
+      return preferred;
+    }
     const available = seats.find((seat) => !taken.has(seat));
     return available ?? seats[0];
   }
@@ -37,12 +44,27 @@ export class SeatSystem {
     }
 
     if (now >= this.nextSwapAt) {
+      const ship = this.room.state.ship;
+      const speed = Math.hypot(ship.velocity.x, ship.velocity.y);
+      const bossTelegraph = this.room.state.enemies.some(
+        (enemy) => enemy.kind === 'boss' && enemy.telegraphUntil > now / 1000
+      );
+      if (speed > 140 || bossTelegraph) {
+        this.nextSwapAt = now + 3000;
+        this.warningAt = this.nextSwapAt - this.warningDuration;
+        this.room.state.swapLabel = 'Swap delayed';
+        return;
+      }
       this.performSwap();
       this.room.state.swapCountdown = 0;
       this.room.state.swapGrace = Math.ceil(this.graceDuration / 1000);
       this.room.state.swapLabel = 'Seats swapped!';
       this.room.damageReduction = 0.3;
       this.room.swapGraceUntil = now + this.graceDuration;
+      this.room.enableSeatStabilizer(this.graceDuration);
+      if (this.room.swapOverdriveSeconds > 0) {
+        this.room.state.systems.overdriveUntil = now / 1000 + this.room.swapOverdriveSeconds;
+      }
       this.scheduleNextSwap();
     }
 
@@ -55,10 +77,28 @@ export class SeatSystem {
   }
 
   performSwap() {
-    const humans = Array.from(this.room.state.players.values()).filter((player) => !player.isBot);
-    const shuffledSeats = seats
-      .slice()
-      .sort(() => this.room.rng() - 0.5);
+    const lockedPlayers = this.room.lockedPlayers ?? new Set<string>();
+    const humans = Array.from(this.room.state.players.values()).filter(
+      (player) => !player.isBot && !lockedPlayers.has(player.id)
+    );
+    if (humans.length === 0) return;
+    if (humans.length === 1) {
+      const current = humans[0].seat;
+      const options = seats.filter((seat) => seat !== current);
+      const next = options[Math.floor(this.room.rng() * options.length)];
+      humans[0].seat = next;
+      this.room.refreshBots();
+      return;
+    }
+
+    let shuffledSeats = seats.slice();
+    let attempts = 0;
+    while (attempts < 12) {
+      shuffledSeats = seats.slice().sort(() => this.room.rng() - 0.5);
+      const collision = humans.some((player, index) => shuffledSeats[index % seats.length] === player.seat);
+      if (!collision) break;
+      attempts += 1;
+    }
 
     humans.forEach((player, index) => {
       player.seat = shuffledSeats[index % seats.length];

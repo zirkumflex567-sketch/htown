@@ -3,18 +3,25 @@
   "version": "0.1.0",
   "private": true,
   "packageManager": "pnpm@10.28.2",
-  "workspaces": ["client", "server", "shared"],
+  "workspaces": [
+    "client",
+    "server",
+    "shared"
+  ],
   "scripts": {
     "dev": "concurrently -k \"pnpm --filter server dev\" \"pnpm --filter client dev\"",
     "build": "pnpm --filter shared build && pnpm --filter server build && pnpm --filter client build",
     "test": "pnpm --filter shared test && pnpm --filter server test",
+    "test:e2e": "playwright test",
     "lint": "pnpm -r lint --if-present"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.1",
     "concurrently": "^8.2.2",
     "eslint": "^8.57.0",
     "prettier": "^3.2.5",
     "typescript": "^5.4.5",
-    "vitest": "^1.5.2"
+    "vitest": "^1.5.2",
+    "@playwright/test": "^1.58.1"
   }
 }

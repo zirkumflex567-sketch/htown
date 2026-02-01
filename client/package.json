@@ -12,7 +12,8 @@
   "dependencies": {
     "colyseus.js": "0.15.13",
     "@htown/shared": "workspace:*",
-    "phaser": "^3.80.1"
+    "phaser": "^3.80.1",
+    "three": "^0.160.0"
   },
   "devDependencies": {
     "@types/node": "^20.12.12",

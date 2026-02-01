@@ -1,5 +1,6 @@
 [
   {"id":"chaser","name":"Chaser","speed":42,"health":30,"damage":8,"behavior":"chaser"},
   {"id":"runner","name":"Runner","speed":68,"health":20,"damage":6,"behavior":"runner"},
-  {"id":"spitter","name":"Spitter","speed":36,"health":26,"damage":10,"behavior":"spitter"}
+  {"id":"spitter","name":"Spitter","speed":36,"health":26,"damage":10,"behavior":"spitter"},
+  {"id":"boss","name":"Warden","speed":24,"health":240,"damage":20,"behavior":"boss"}
 ]

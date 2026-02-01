@@ -1,0 +1,6 @@
+[
+  {"id":"exposed","name":"Exposed","duration":4,"damageMultiplier":1.25},
+  {"id":"volatile","name":"Volatile","duration":3.5,"explosionRadius":12,"explosionDamage":14},
+  {"id":"tracking","name":"Tracking Lock","duration":5,"aimAssist":0.25},
+  {"id":"weakpoint","name":"Weakpoint","duration":3,"damageMultiplier":1.5}
+]

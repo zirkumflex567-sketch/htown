@@ -1,0 +1,583 @@
+{
+  "generatedAt": "2026-02-01T02:48:03.1456641+01:00",
+  "root": "/assets/quaternius/spacekit2023",
+  "count": 96,
+  "assets": [
+    {
+      "name": "boss",
+      "category": "root",
+      "path": "boss.gltf",
+      "sizeBytes": 1213599
+    },
+    {
+      "name": "enemy",
+      "category": "root",
+      "path": "enemy.gltf",
+      "sizeBytes": 187271
+    },
+    {
+      "name": "powerup",
+      "category": "root",
+      "path": "powerup.gltf",
+      "sizeBytes": 92868
+    },
+    {
+      "name": "ship",
+      "category": "root",
+      "path": "ship.gltf",
+      "sizeBytes": 245407
+    },
+    {
+      "name": "Astronaut_BarbaraTheBee",
+      "category": "Characters",
+      "path": "Characters/GLTF/Astronaut_BarbaraTheBee.gltf",
+      "sizeBytes": 1775147
+    },
+    {
+      "name": "Astronaut_FernandoTheFlamingo",
+      "category": "Characters",
+      "path": "Characters/GLTF/Astronaut_FernandoTheFlamingo.gltf",
+      "sizeBytes": 1707553
+    },
+    {
+      "name": "Astronaut_FinnTheFrog",
+      "category": "Characters",
+      "path": "Characters/GLTF/Astronaut_FinnTheFrog.gltf",
+      "sizeBytes": 1747693
+    },
+    {
+      "name": "Astronaut_RaeTheRedPanda",
+      "category": "Characters",
+      "path": "Characters/GLTF/Astronaut_RaeTheRedPanda.gltf",
+      "sizeBytes": 1778957
+    },
+    {
+      "name": "Enemy_ExtraSmall",
+      "category": "Characters",
+      "path": "Characters/GLTF/Enemy_ExtraSmall.gltf",
+      "sizeBytes": 163710
+    },
+    {
+      "name": "Enemy_Flying",
+      "category": "Characters",
+      "path": "Characters/GLTF/Enemy_Flying.gltf",
+      "sizeBytes": 284368
+    },
+    {
+      "name": "Enemy_Large",
+      "category": "Characters",
+      "path": "Characters/GLTF/Enemy_Large.gltf",
+      "sizeBytes": 1213599
+    },
+    {
+      "name": "Enemy_Small",
+      "category": "Characters",
+      "path": "Characters/GLTF/Enemy_Small.gltf",
+      "sizeBytes": 187271
+    },
+    {
+      "name": "Mech_BarbaraTheBee",
+      "category": "Characters",
+      "path": "Characters/GLTF/Mech_BarbaraTheBee.gltf",
+      "sizeBytes": 877768
+    },
+    {
+      "name": "Mech_FernandoTheFlamingo",
+      "category": "Characters",
+      "path": "Characters/GLTF/Mech_FernandoTheFlamingo.gltf",
+      "sizeBytes": 784850
+    },
+    {
+      "name": "Mech_FinnTheFrog",
+      "category": "Characters",
+      "path": "Characters/GLTF/Mech_FinnTheFrog.gltf",
+      "sizeBytes": 1037974
+    },
+    {
+      "name": "Mech_RaeTheRedPanda",
+      "category": "Characters",
+      "path": "Characters/GLTF/Mech_RaeTheRedPanda.gltf",
+      "sizeBytes": 775414
+    },
+    {
+      "name": "Base_Large",
+      "category": "Environment",
+      "path": "Environment/GLTF/Base_Large.gltf",
+      "sizeBytes": 164167
+    },
+    {
+      "name": "Building_L",
+      "category": "Environment",
+      "path": "Environment/GLTF/Building_L.gltf",
+      "sizeBytes": 175908
+    },
+    {
+      "name": "Bush_1",
+      "category": "Environment",
+      "path": "Environment/GLTF/Bush_1.gltf",
+      "sizeBytes": 104424
+    },
+    {
+      "name": "Bush_2",
+      "category": "Environment",
+      "path": "Environment/GLTF/Bush_2.gltf",
+      "sizeBytes": 72721
+    },
+    {
+      "name": "Bush_3",
+      "category": "Environment",
+      "path": "Environment/GLTF/Bush_3.gltf",
+      "sizeBytes": 32103
+    },
+    {
+      "name": "Connector",
+      "category": "Environment",
+      "path": "Environment/GLTF/Connector.gltf",
+      "sizeBytes": 31511
+    },
+    {
+      "name": "GeodesicDome",
+      "category": "Environment",
+      "path": "Environment/GLTF/GeodesicDome.gltf",
+      "sizeBytes": 115880
+    },
+    {
+      "name": "Grass_1",
+      "category": "Environment",
+      "path": "Environment/GLTF/Grass_1.gltf",
+      "sizeBytes": 20794
+    },
+    {
+      "name": "Grass_2",
+      "category": "Environment",
+      "path": "Environment/GLTF/Grass_2.gltf",
+      "sizeBytes": 13530
+    },
+    {
+      "name": "Grass_3",
+      "category": "Environment",
+      "path": "Environment/GLTF/Grass_3.gltf",
+      "sizeBytes": 29865
+    },
+    {
+      "name": "House_Cylinder",
+      "category": "Environment",
+      "path": "Environment/GLTF/House_Cylinder.gltf",
+      "sizeBytes": 66395
+    },
+    {
+      "name": "House_Long",
+      "category": "Environment",
+      "path": "Environment/GLTF/House_Long.gltf",
+      "sizeBytes": 143586
+    },
+    {
+      "name": "House_Open",
+      "category": "Environment",
+      "path": "Environment/GLTF/House_Open.gltf",
+      "sizeBytes": 55554
+    },
+    {
+      "name": "House_OpenBack",
+      "category": "Environment",
+      "path": "Environment/GLTF/House_OpenBack.gltf",
+      "sizeBytes": 56393
+    },
+    {
+      "name": "House_Single_Support",
+      "category": "Environment",
+      "path": "Environment/GLTF/House_Single_Support.gltf",
+      "sizeBytes": 36715
+    },
+    {
+      "name": "House_Single",
+      "category": "Environment",
+      "path": "Environment/GLTF/House_Single.gltf",
+      "sizeBytes": 49054
+    },
+    {
+      "name": "MetalSupport",
+      "category": "Environment",
+      "path": "Environment/GLTF/MetalSupport.gltf",
+      "sizeBytes": 50722
+    },
+    {
+      "name": "Planet_1",
+      "category": "Environment",
+      "path": "Environment/GLTF/Planet_1.gltf",
+      "sizeBytes": 146885
+    },
+    {
+      "name": "Planet_10",
+      "category": "Environment",
+      "path": "Environment/GLTF/Planet_10.gltf",
+      "sizeBytes": 112356
+    },
+    {
+      "name": "Planet_11",
+      "category": "Environment",
+      "path": "Environment/GLTF/Planet_11.gltf",
+      "sizeBytes": 109176
+    },
+    {
+      "name": "Planet_2",
+      "category": "Environment",
+      "path": "Environment/GLTF/Planet_2.gltf",
+      "sizeBytes": 151318
+    },
+    {
+      "name": "Planet_3",
+      "category": "Environment",
+      "path": "Environment/GLTF/Planet_3.gltf",
+      "sizeBytes": 127212
+    },
+    {
+      "name": "Planet_4",
+      "category": "Environment",
+      "path": "Environment/GLTF/Planet_4.gltf",
+      "sizeBytes": 129884
+    },
+    {
+      "name": "Planet_5",
+      "category": "Environment",
+      "path": "Environment/GLTF/Planet_5.gltf",
+      "sizeBytes": 62079
+    },
+    {
+      "name": "Planet_6",
+      "category": "Environment",
+      "path": "Environment/GLTF/Planet_6.gltf",
+      "sizeBytes": 72451
+    },
+    {
+      "name": "Planet_7",
+      "category": "Environment",
+      "path": "Environment/GLTF/Planet_7.gltf",
+      "sizeBytes": 92855
+    },
+    {
+      "name": "Planet_8",
+      "category": "Environment",
+      "path": "Environment/GLTF/Planet_8.gltf",
+      "sizeBytes": 54397
+    },
+    {
+      "name": "Planet_9",
+      "category": "Environment",
+      "path": "Environment/GLTF/Planet_9.gltf",
+      "sizeBytes": 80936
+    },
+    {
+      "name": "Plant_1",
+      "category": "Environment",
+      "path": "Environment/GLTF/Plant_1.gltf",
+      "sizeBytes": 31776
+    },
+    {
+      "name": "Plant_2",
+      "category": "Environment",
+      "path": "Environment/GLTF/Plant_2.gltf",
+      "sizeBytes": 17413
+    },
+    {
+      "name": "Plant_3",
+      "category": "Environment",
+      "path": "Environment/GLTF/Plant_3.gltf",
+      "sizeBytes": 91864
+    },
+    {
+      "name": "Ramp",
+      "category": "Environment",
+      "path": "Environment/GLTF/Ramp.gltf",
+      "sizeBytes": 21721
+    },
+    {
+      "name": "Rock_1",
+      "category": "Environment",
+      "path": "Environment/GLTF/Rock_1.gltf",
+      "sizeBytes": 18607
+    },
+    {
+      "name": "Rock_2",
+      "category": "Environment",
+      "path": "Environment/GLTF/Rock_2.gltf",
+      "sizeBytes": 18199
+    },
+    {
+      "name": "Rock_3",
+      "category": "Environment",
+      "path": "Environment/GLTF/Rock_3.gltf",
+      "sizeBytes": 18393
+    },
+    {
+      "name": "Rock_4",
+      "category": "Environment",
+      "path": "Environment/GLTF/Rock_4.gltf",
+      "sizeBytes": 32968
+    },
+    {
+      "name": "Rock_Large_1",
+      "category": "Environment",
+      "path": "Environment/GLTF/Rock_Large_1.gltf",
+      "sizeBytes": 18891
+    },
+    {
+      "name": "Rock_Large_2",
+      "category": "Environment",
+      "path": "Environment/GLTF/Rock_Large_2.gltf",
+      "sizeBytes": 33337
+    },
+    {
+      "name": "Rock_Large_3",
+      "category": "Environment",
+      "path": "Environment/GLTF/Rock_Large_3.gltf",
+      "sizeBytes": 33164
+    },
+    {
+      "name": "Roof_Antenna",
+      "category": "Environment",
+      "path": "Environment/GLTF/Roof_Antenna.gltf",
+      "sizeBytes": 33265
+    },
+    {
+      "name": "Roof_Opening",
+      "category": "Environment",
+      "path": "Environment/GLTF/Roof_Opening.gltf",
+      "sizeBytes": 24275
+    },
+    {
+      "name": "Roof_Radar",
+      "category": "Environment",
+      "path": "Environment/GLTF/Roof_Radar.gltf",
+      "sizeBytes": 52639
+    },
+    {
+      "name": "Roof_VentL",
+      "category": "Environment",
+      "path": "Environment/GLTF/Roof_VentL.gltf",
+      "sizeBytes": 11834
+    },
+    {
+      "name": "Roof_VentR",
+      "category": "Environment",
+      "path": "Environment/GLTF/Roof_VentR.gltf",
+      "sizeBytes": 11832
+    },
+    {
+      "name": "SolarPanel_Ground",
+      "category": "Environment",
+      "path": "Environment/GLTF/SolarPanel_Ground.gltf",
+      "sizeBytes": 37943
+    },
+    {
+      "name": "SolarPanel_Roof",
+      "category": "Environment",
+      "path": "Environment/GLTF/SolarPanel_Roof.gltf",
+      "sizeBytes": 79692
+    },
+    {
+      "name": "SolarPanel_Structure",
+      "category": "Environment",
+      "path": "Environment/GLTF/SolarPanel_Structure.gltf",
+      "sizeBytes": 135110
+    },
+    {
+      "name": "Stairs",
+      "category": "Environment",
+      "path": "Environment/GLTF/Stairs.gltf",
+      "sizeBytes": 24796
+    },
+    {
+      "name": "Tree_Blob_1",
+      "category": "Environment",
+      "path": "Environment/GLTF/Tree_Blob_1.gltf",
+      "sizeBytes": 227362
+    },
+    {
+      "name": "Tree_Blob_2",
+      "category": "Environment",
+      "path": "Environment/GLTF/Tree_Blob_2.gltf",
+      "sizeBytes": 213750
+    },
+    {
+      "name": "Tree_Blob_3",
+      "category": "Environment",
+      "path": "Environment/GLTF/Tree_Blob_3.gltf",
+      "sizeBytes": 83136
+    },
+    {
+      "name": "Tree_Floating_1",
+      "category": "Environment",
+      "path": "Environment/GLTF/Tree_Floating_1.gltf",
+      "sizeBytes": 108039
+    },
+    {
+      "name": "Tree_Floating_2",
+      "category": "Environment",
+      "path": "Environment/GLTF/Tree_Floating_2.gltf",
+      "sizeBytes": 180467
+    },
+    {
+      "name": "Tree_Floating_3",
+      "category": "Environment",
+      "path": "Environment/GLTF/Tree_Floating_3.gltf",
+      "sizeBytes": 178636
+    },
+    {
+      "name": "Tree_Lava_1",
+      "category": "Environment",
+      "path": "Environment/GLTF/Tree_Lava_1.gltf",
+      "sizeBytes": 59312
+    },
+    {
+      "name": "Tree_Lava_2",
+      "category": "Environment",
+      "path": "Environment/GLTF/Tree_Lava_2.gltf",
+      "sizeBytes": 54817
+    },
+    {
+      "name": "Tree_Lava_3",
+      "category": "Environment",
+      "path": "Environment/GLTF/Tree_Lava_3.gltf",
+      "sizeBytes": 52168
+    },
+    {
+      "name": "Tree_Light_1",
+      "category": "Environment",
+      "path": "Environment/GLTF/Tree_Light_1.gltf",
+      "sizeBytes": 97461
+    },
+    {
+      "name": "Tree_Light_2",
+      "category": "Environment",
+      "path": "Environment/GLTF/Tree_Light_2.gltf",
+      "sizeBytes": 48988
+    },
+    {
+      "name": "Tree_Spikes_1",
+      "category": "Environment",
+      "path": "Environment/GLTF/Tree_Spikes_1.gltf",
+      "sizeBytes": 104086
+    },
+    {
+      "name": "Tree_Spikes_2",
+      "category": "Environment",
+      "path": "Environment/GLTF/Tree_Spikes_2.gltf",
+      "sizeBytes": 76382
+    },
+    {
+      "name": "Tree_Spiral_1",
+      "category": "Environment",
+      "path": "Environment/GLTF/Tree_Spiral_1.gltf",
+      "sizeBytes": 42018
+    },
+    {
+      "name": "Tree_Spiral_2",
+      "category": "Environment",
+      "path": "Environment/GLTF/Tree_Spiral_2.gltf",
+      "sizeBytes": 78725
+    },
+    {
+      "name": "Tree_Spiral_3",
+      "category": "Environment",
+      "path": "Environment/GLTF/Tree_Spiral_3.gltf",
+      "sizeBytes": 68853
+    },
+    {
+      "name": "Tree_Swirl_1",
+      "category": "Environment",
+      "path": "Environment/GLTF/Tree_Swirl_1.gltf",
+      "sizeBytes": 92659
+    },
+    {
+      "name": "Tree_Swirl_2",
+      "category": "Environment",
+      "path": "Environment/GLTF/Tree_Swirl_2.gltf",
+      "sizeBytes": 52104
+    },
+    {
+      "name": "Pickup_Bullets",
+      "category": "Items",
+      "path": "Items/GLTF/Pickup_Bullets.gltf",
+      "sizeBytes": 36752
+    },
+    {
+      "name": "Pickup_Crate",
+      "category": "Items",
+      "path": "Items/GLTF/Pickup_Crate.gltf",
+      "sizeBytes": 96016
+    },
+    {
+      "name": "Pickup_Health",
+      "category": "Items",
+      "path": "Items/GLTF/Pickup_Health.gltf",
+      "sizeBytes": 58187
+    },
+    {
+      "name": "Pickup_Jar",
+      "category": "Items",
+      "path": "Items/GLTF/Pickup_Jar.gltf",
+      "sizeBytes": 22623
+    },
+    {
+      "name": "Pickup_KeyCard",
+      "category": "Items",
+      "path": "Items/GLTF/Pickup_KeyCard.gltf",
+      "sizeBytes": 19987
+    },
+    {
+      "name": "Pickup_Sphere",
+      "category": "Items",
+      "path": "Items/GLTF/Pickup_Sphere.gltf",
+      "sizeBytes": 92868
+    },
+    {
+      "name": "Pickup_Thunder",
+      "category": "Items",
+      "path": "Items/GLTF/Pickup_Thunder.gltf",
+      "sizeBytes": 15578
+    },
+    {
+      "name": "Rover_1",
+      "category": "Vehicles",
+      "path": "Vehicles/GLTF/Rover_1.gltf",
+      "sizeBytes": 441623
+    },
+    {
+      "name": "Rover_2",
+      "category": "Vehicles",
+      "path": "Vehicles/GLTF/Rover_2.gltf",
+      "sizeBytes": 481320
+    },
+    {
+      "name": "Rover_Round",
+      "category": "Vehicles",
+      "path": "Vehicles/GLTF/Rover_Round.gltf",
+      "sizeBytes": 412138
+    },
+    {
+      "name": "Spaceship_BarbaraTheBee",
+      "category": "Vehicles",
+      "path": "Vehicles/GLTF/Spaceship_BarbaraTheBee.gltf",
+      "sizeBytes": 347592
+    },
+    {
+      "name": "Spaceship_FernandoTheFlamingo",
+      "category": "Vehicles",
+      "path": "Vehicles/GLTF/Spaceship_FernandoTheFlamingo.gltf",
+      "sizeBytes": 220654
+    },
+    {
+      "name": "Spaceship_FinnTheFrog",
+      "category": "Vehicles",
+      "path": "Vehicles/GLTF/Spaceship_FinnTheFrog.gltf",
+      "sizeBytes": 245407
+    },
+    {
+      "name": "Spaceship_RaeTheRedPanda",
+      "category": "Vehicles",
+      "path": "Vehicles/GLTF/Spaceship_RaeTheRedPanda.gltf",
+      "sizeBytes": 142993
+    }
+  ]
+}

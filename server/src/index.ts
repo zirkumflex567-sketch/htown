@@ -6,14 +6,25 @@ import { Server } from '@colyseus/core';
 import { WebSocketTransport } from '@colyseus/ws-transport';
 import { GameRoom } from './rooms/GameRoom';
 import { env } from './env';
-import { initDb, getLeaderboard } from './db';
+import { initDb, getLeaderboard, getUserStats } from './db';
 import { login, register, refresh, logout, verifyAccessToken } from './auth';
 import { requireAuth, type AuthedRequest } from './middleware/authMiddleware';
 
 initDb();
 
 const app = express();
-app.use(cors({ origin: env.clientUrl, credentials: true }));
+const isDev = process.env.NODE_ENV !== 'production';
+app.use(
+  cors({
+    credentials: true,
+    origin(origin, callback) {
+      if (!origin) return callback(null, true);
+      if (isDev) return callback(null, true);
+      if (origin === env.clientUrl) return callback(null, true);
+      return callback(new Error('Not allowed by CORS'));
+    }
+  })
+);
 app.use(express.json());
 
 const authLimiter = rateLimit({ windowMs: 60_000, limit: 20 });
@@ -75,8 +86,7 @@ app.get('/leaderboard/me', requireAuth, (req: AuthedRequest, res) => {
   if (!header) return res.status(401).json({ error: 'UNAUTHORIZED' });
   try {
     const payload = verifyAccessToken(header.split(' ')[1]);
-    const leaderboard = getLeaderboard(50);
-    const me = leaderboard.find((entry) => entry.id === payload.sub);
+    const me = getUserStats(payload.sub);
     return res.json({ me });
   } catch {
     return res.status(401).json({ error: 'UNAUTHORIZED' });

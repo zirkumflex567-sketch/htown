@@ -13,10 +13,36 @@ export class PlayerState extends Schema {
   @type('boolean') connected = true;
 }
 
+export class SeatInputState extends Schema {
+  @type('string') seat: SeatType = 'pilot';
+  @type(Vec2) move = new Vec2();
+  @type(Vec2) aim = new Vec2();
+  @type('boolean') boost = false;
+  @type('boolean') fire = false;
+  @type('number') weaponIndex = 0;
+  @type('number') powerEngines = 0.33;
+  @type('number') powerWeapons = 0.33;
+  @type('number') powerShields = 0.34;
+  @type('string') powerPreset = 'balanced';
+  @type('number') systemsAbility = -1;
+  @type('string') supportAction = '';
+}
+
 export class EnemyState extends Schema {
   @type('string') id = '';
   @type('string') kind = 'chaser';
   @type(Vec2) position = new Vec2();
+  @type(Vec2) velocity = new Vec2();
+  @type('number') yaw = 0;
+  @type('number') markedUntil = 0;
+  @type('number') exposedUntil = 0;
+  @type('number') volatileUntil = 0;
+  @type('number') trackingUntil = 0;
+  @type('number') weakpointUntil = 0;
+  @type('number') slowUntil = 0;
+  @type('number') telegraphUntil = 0;
+  @type('number') attackCooldown = 0;
+  @type('string') attackMode = '';
   @type('number') health = 0;
 }
 
@@ -30,18 +56,74 @@ export class ShipState extends Schema {
   @type('number') energyWeapons = 0.33;
   @type('number') energyShields = 0.34;
   @type('number') visionRadius = 160;
+  @type('number') powerTargetEngines = 0.33;
+  @type('number') powerTargetWeapons = 0.33;
+  @type('number') powerTargetShields = 0.34;
+  @type('number') powerInstability = 0;
+  @type('number') powerHeat = 0;
+  @type('number') powerWindowStart = 0;
+  @type('number') powerWindowEnd = 0;
+  @type('string') powerWindowType = '';
+  @type('number') powerOverloadUntil = 0;
+  @type('number') powerPerfectUntil = 0;
+  @type('number') visionPulseUntil = 0;
+  @type('number') comboSpeedUntil = 0;
+  @type('number') comboTrailUntil = 0;
+  @type('number') comboDamageUntil = 0;
+  @type('number') hullRegenUntil = 0;
+  @type('number') scoreBoostUntil = 0;
+  @type('number') reflectUntil = 0;
 }
 
 export class UpgradeState extends Schema {
   @type('string') id = '';
   @type('string') name = '';
   @type('string') description = '';
+  @type('string') seat = 'all';
+}
+
+export class ProjectileState extends Schema {
+  @type('string') id = '';
+  @type('string') kind = 'mg';
+  @type('string') owner = 'player';
+  @type(Vec2) position = new Vec2();
+  @type(Vec2) velocity = new Vec2();
+  @type('number') ttl = 0;
+  @type('number') damage = 0;
+}
+
+export class SystemsState extends Schema {
+  @type('number') empCooldown = 0;
+  @type('number') shieldCooldown = 0;
+  @type('number') slowCooldown = 0;
+  @type('number') overdriveCooldown = 0;
+  @type('number') overdriveUntil = 0;
+  @type('number') empUntil = 0;
+  @type('number') slowFieldUntil = 0;
+  @type('number') slowFieldRadius = 0;
+  @type('string') empMode = 'standard';
+  @type('string') shieldMode = 'standard';
+  @type('string') slowMode = 'standard';
+  @type('string') overdriveMode = 'standard';
+}
+
+export class SupportState extends Schema {
+  @type('number') pingCooldown = 0;
+  @type('number') repairCooldown = 0;
+  @type('number') radarUntil = 0;
+  @type('number') repairWindowStart = 0;
+  @type('number') repairWindowEnd = 0;
+  @type('number') repairQuality = 0;
 }
 
 export class GameState extends Schema {
   @type(ShipState) ship = new ShipState();
   @type({ map: PlayerState }) players = new MapSchema<PlayerState>();
+  @type({ map: SeatInputState }) seatInputs = new MapSchema<SeatInputState>();
   @type([EnemyState]) enemies = new ArraySchema<EnemyState>();
+  @type([ProjectileState]) projectiles = new ArraySchema<ProjectileState>();
+  @type(SystemsState) systems = new SystemsState();
+  @type(SupportState) support = new SupportState();
   @type([UpgradeState]) upgradeChoices = new ArraySchema<UpgradeState>();
   @type('number') score = 0;
   @type('number') wave = 1;
@@ -49,4 +131,7 @@ export class GameState extends Schema {
   @type('number') swapCountdown = 0;
   @type('number') swapGrace = 0;
   @type('string') swapLabel = '';
+  @type('string') comboName = '';
+  @type('string') comboDetail = '';
+  @type('number') comboUntil = 0;
 }

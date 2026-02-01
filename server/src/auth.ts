@@ -41,7 +41,11 @@ export async function register(email: string, password: string) {
     password_hash: passwordHash,
     best_score: 0,
     total_runs: 0,
+    total_kills: 0,
+    best_wave: 0,
+    best_boss_kills: 0,
     last_run_stats: null,
+    last_run_summary: null,
     refresh_token: null
   });
   const accessToken = signAccessToken(id);
