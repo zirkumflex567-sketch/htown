@@ -23,5 +23,8 @@ export const env = {
   postgresUrl: process.env.ADMIN_POSTGRES_URL ?? '',
   logDir: process.env.ADMIN_LOG_DIR ?? './logs',
   logLevel: process.env.ADMIN_LOG_LEVEL ?? 'info',
-  gameAdapter: (process.env.ADMIN_GAME_ADAPTER ?? 'stub') as 'stub' | 'none'
+  gameAdapter: (process.env.ADMIN_GAME_ADAPTER ?? 'stub') as 'stub' | 'none',
+  webhookSecret: process.env.ADMIN_WEBHOOK_SECRET ?? '',
+  webhookBranch: process.env.ADMIN_WEBHOOK_BRANCH ?? 'refs/heads/main',
+  webhookRepo: process.env.ADMIN_WEBHOOK_REPO ?? ''
 };

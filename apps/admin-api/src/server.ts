@@ -16,6 +16,7 @@ import { registerMatchRoutes } from './routes/matches';
 import { registerAuditRoutes } from './routes/audit';
 import { registerAdminUserRoutes } from './routes/adminUsers';
 import { registerUpdateRoutes } from './routes/update';
+import { registerWebhookRoutes } from './routes/webhooks';
 
 export async function buildServer() {
   const app = Fastify({
@@ -78,6 +79,7 @@ export async function buildServer() {
   await registerAuditRoutes(app);
   await registerAdminUserRoutes(app);
   await registerUpdateRoutes(app);
+  await registerWebhookRoutes(app);
 
   return app;
 }
