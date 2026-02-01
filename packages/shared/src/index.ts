@@ -243,6 +243,14 @@ export type SessionInfo = {
   permissions: Permission[];
 };
 
+export type UpdateStatus = {
+  status: 'unknown' | 'running' | 'success' | 'failed' | 'blocked';
+  startedAt?: string;
+  finishedAt?: string;
+  message?: string;
+  commit?: string;
+};
+
 export type ListQuery = {
   q?: string;
   page?: number;

@@ -22,6 +22,7 @@ import type {
   SessionInfo,
   LogEntry
 } from './index';
+import type { UpdateStatus } from './index';
 
 export type ApiClientOptions = {
   baseUrl: string;
@@ -234,5 +235,13 @@ export class AdminApiClient {
       method: 'POST',
       body: JSON.stringify(payload)
     });
+  }
+
+  getUpdateStatus() {
+    return this.request<UpdateStatus>('/admin/update');
+  }
+
+  triggerUpdate() {
+    return this.request<{ ok: boolean; started: boolean }>('/admin/update', { method: 'POST' });
   }
 }

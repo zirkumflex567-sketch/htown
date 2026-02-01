@@ -1,12 +1,31 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import { Card } from '../components/Card';
+import { Button } from '../components/Button';
 import { formatDuration } from '../utils/format';
 
 export default function DashboardPage() {
-  const { api } = useAuth();
+  const { api, permissions } = useAuth();
+  const { push } = useToast();
   const [metrics, setMetrics] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [updating, setUpdating] = useState(false);
+
+  const canUpdate = permissions.includes('admin:manage');
+
+  const handleUpdate = async () => {
+    setUpdating(true);
+    try {
+      await api.triggerUpdate();
+      push('Update gestartet. Dienste werden neu geladen.', 'success');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Update failed';
+      push(message, 'error');
+    } finally {
+      setUpdating(false);
+    }
+  };
 
   useEffect(() => {
     const load = async () => {
@@ -76,6 +95,19 @@ export default function DashboardPage() {
           </div>
         </div>
       </Card>
+      {canUpdate && (
+        <Card title="Deployment">
+          <div className="text-sm text-slate-400">
+            Pulls the latest repo changes, rebuilds web assets, and restarts services.
+          </div>
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+            <Button disabled={updating} onClick={handleUpdate}>
+              {updating ? 'Updating...' : 'Update now'}
+            </Button>
+            <span className="text-xs text-slate-500">A short restart of Admin API and game server may occur.</span>
+          </div>
+        </Card>
+      )}
     </div>
   );
 }
