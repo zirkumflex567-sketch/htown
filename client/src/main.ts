@@ -1877,7 +1877,7 @@ function renderLoadout() {
     : `<div class="loadout-empty">No intel yet.</div>`;
 }
 
-async function connect(roomId?: string) {
+async function connect(roomId?: string, modeHint?: GameMode | null) {
   if (!state.accessToken) {
     addLog('warn', 'Connect blocked: missing access token.');
     if (!e2eVisualsEnabled) {
@@ -1894,20 +1894,27 @@ async function connect(roomId?: string) {
   }
   state.playerId = getTokenPayload(state.accessToken) ?? '';
   updateDebugMeta();
+  const targetMode = modeHint ?? (roomId ? null : state.mode);
   const options: { userId: string; seat?: SeatType; lockSeat?: boolean; mode?: GameMode; accessToken?: string } = {
-    userId: state.playerId,
-    mode: state.mode
+    userId: state.playerId
   };
+  if (targetMode) {
+    options.mode = targetMode;
+  }
   if (e2eSeat) {
     options.seat = e2eSeat;
     options.lockSeat = true;
   }
-  if (!e2eSeat && getRoomMode() !== 'crew') {
+  if (!e2eSeat && targetMode && targetMode !== 'crew') {
     options.seat = 'pilot';
     options.lockSeat = true;
   }
   options.accessToken = state.accessToken;
-  addLog('info', 'Connecting to room', { roomId: roomId ?? 'matchmake', userId: state.playerId });
+  addLog('info', 'Connecting to room', {
+    roomId: roomId ?? 'matchmake',
+    userId: state.playerId,
+    mode: targetMode ?? 'unknown'
+  });
   try {
     state.room = roomId ? await client.joinById(roomId, options) : await client.joinOrCreate('game', options);
   } catch (error) {
@@ -2163,7 +2170,7 @@ createRoomButton.addEventListener('click', async () => {
     return;
   }
   roomStatus.textContent = `Room code: ${data.code}`;
-  await connect(data.roomId);
+  await connect(data.roomId, state.mode);
 });
 
 joinRoomButton.addEventListener('click', async () => {
@@ -2195,23 +2202,24 @@ browseRoomsButton.addEventListener('click', async () => {
       roomList.textContent = 'No open rooms yet.';
       return;
     }
-    roomList.innerHTML = rooms
-      .map(
-        (room) => `
-          <div class="room-row">
-            <div><strong>${room.roomId.slice(0, 6)}</strong> · ${room.clients}/${room.maxClients} players · ${room.metadata?.mode ?? 'crew'}</div>
-            <button data-room="${room.roomId}">Join</button>
-          </div>
-        `
-      )
-      .join('');
-    roomList.querySelectorAll<HTMLButtonElement>('button[data-room]').forEach((button) => {
-      button.addEventListener('click', async () => {
-        const id = button.dataset.room;
-        if (!id) return;
-        await connect(id);
+      roomList.innerHTML = rooms
+        .map(
+          (room) => `
+            <div class="room-row">
+              <div><strong>${room.roomId.slice(0, 6)}</strong> · ${room.clients}/${room.maxClients} players · ${room.metadata?.mode ?? 'crew'}</div>
+              <button data-room="${room.roomId}" data-mode="${room.metadata?.mode ?? ''}">Join</button>
+            </div>
+          `
+        )
+        .join('');
+      roomList.querySelectorAll<HTMLButtonElement>('button[data-room]').forEach((button) => {
+        button.addEventListener('click', async () => {
+          const id = button.dataset.room;
+          if (!id) return;
+          const mode = (button.dataset.mode as GameMode | undefined) || null;
+          await connect(id, mode);
+        });
       });
-    });
   } catch (error) {
     roomList.textContent = 'Failed to load rooms.';
     addLog('error', 'Room browser failed', error);
