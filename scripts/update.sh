@@ -60,7 +60,19 @@ fi
 
 write_status "running" "Update started" "$start_ts" "" "$commit_before"
 
-trap 'rc=$?; if [ "$rc" -ne 0 ]; then finish_ts=$(now_utc); write_status "failed" "Update failed (rc=$rc)" "$start_ts" "$finish_ts" "${commit_after:-$commit_before}"; fi' EXIT
+finish() {
+  local rc=$?
+  local finish_ts
+  finish_ts="$(now_utc)"
+  local commit_after
+  commit_after="$(git -C "$HTOWN_ROOT" rev-parse HEAD 2>/dev/null || true)"
+  if [ "$rc" -eq 0 ]; then
+    write_status "success" "Update completed" "$start_ts" "$finish_ts" "$commit_after"
+  else
+    write_status "failed" "Update failed (rc=$rc)" "$start_ts" "$finish_ts" "$commit_after"
+  fi
+}
+trap finish EXIT
 
 log "Starting update in $HTOWN_ROOT"
 
@@ -103,9 +115,5 @@ VITE_SERVER_URL="$CLIENT_URL" /usr/bin/pnpm -C "$HTOWN_ROOT/client" build
 
 log "Restarting services"
 systemctl restart htown-admin htown
-
-commit_after="$(git -C "$HTOWN_ROOT" rev-parse HEAD 2>/dev/null || true)"
-finish_ts="$(now_utc)"
-write_status "success" "Update completed" "$start_ts" "$finish_ts" "$commit_after"
 
 log "Update completed"
