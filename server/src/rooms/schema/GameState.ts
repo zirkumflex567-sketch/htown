@@ -17,6 +17,7 @@ export class PlayerState extends Schema {
   @type('string') seat: SeatType = 'pilot';
   @type('boolean') isBot = false;
   @type('boolean') connected = true;
+  @type('boolean') ready = false;
 }
 
 export class SeatInputState extends Schema {
@@ -172,6 +173,7 @@ export class SupportState extends Schema {
 }
 
 export class GameState extends Schema {
+  @type('string') phase = 'lobby';
   @type('string') mode: GameMode = 'crew';
   @type(ShipState) ship = new ShipState();
   @type({ map: ShipState }) ships = new MapSchema<ShipState>();

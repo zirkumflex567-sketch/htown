@@ -208,6 +208,18 @@ app.innerHTML = `
         </div>
       </div>
     </div>
+    <div class="room-overlay hidden" id="room-overlay">
+      <div class="card room-card">
+        <h2>Lobby</h2>
+        <div class="lobby-meta">Mode: <strong id="room-lobby-mode">—</strong></div>
+        <div class="lobby-seats" id="room-lobby-seats"></div>
+        <div class="lobby-status" id="room-lobby-status"></div>
+        <div class="actions">
+          <button id="room-ready">Ready</button>
+          <button id="room-leave">Leave</button>
+        </div>
+      </div>
+    </div>
     <button class="debug-fab" id="debug-fab" title="Toggle debug (\` or Ctrl+D)">Debug</button>
     <button class="settings-fab" id="settings-fab" title="Settings">Settings</button>
     <button class="stats-fab" id="stats-fab" title="Stats">Stats</button>
@@ -331,6 +343,10 @@ app.innerHTML = `
 const overlay = document.getElementById('overlay')!;
 const overlayScreens = Array.from(document.querySelectorAll<HTMLElement>('.overlay-screen'));
 const lobbyModeLabel = document.getElementById('lobby-mode-label')!;
+const roomOverlay = document.getElementById('room-overlay')!;
+const roomLobbyMode = document.getElementById('room-lobby-mode')!;
+const roomLobbySeats = document.getElementById('room-lobby-seats')!;
+const roomLobbyStatus = document.getElementById('room-lobby-status')!;
 const swapFlash = document.getElementById('swap-flash')!;
 const swapBanner = document.getElementById('swap-banner')!;
 const upgrade = document.getElementById('upgrade')!;
@@ -389,6 +405,8 @@ const menuLogoutButton = document.getElementById('menu-logout')! as HTMLButtonEl
 const modeBackButton = document.getElementById('mode-back')! as HTMLButtonElement;
 const modeContinueButton = document.getElementById('mode-continue')! as HTMLButtonElement;
 const lobbyBackButton = document.getElementById('lobby-back')! as HTMLButtonElement;
+const roomReadyButton = document.getElementById('room-ready')! as HTMLButtonElement;
+const roomLeaveButton = document.getElementById('room-leave')! as HTMLButtonElement;
 const statsMe = document.getElementById('stats-me')!;
 const statsLeaderboard = document.getElementById('stats-leaderboard')!;
 if (e2eVisualsEnabled) {
@@ -450,6 +468,66 @@ const overlayModeLabels: Record<GameMode, string> = {
   solo: 'Solo Ships',
   single: 'Solo Control'
 };
+
+let roomReady = false;
+
+function updateRoomLobby() {
+  if (!state.room || e2eVisualsEnabled) {
+    roomOverlay.classList.add('hidden');
+    return;
+  }
+  const roomState = state.room.state as { phase?: string; mode?: GameMode; players?: Map<string, any> };
+  const phase = roomState.phase ?? 'running';
+  if (phase !== 'lobby') {
+    roomOverlay.classList.add('hidden');
+    return;
+  }
+  if (document.pointerLockElement === arena) {
+    document.exitPointerLock();
+  }
+  roomOverlay.classList.remove('hidden');
+  roomLobbyMode.textContent = overlayModeLabels[roomState.mode ?? state.mode] ?? (roomState.mode ?? state.mode);
+  const seatOrder: SeatType[] = ['pilot', 'gunner', 'power', 'systems', 'support'];
+  const entries: Array<{ seat: SeatType; label: string; ready: boolean; isBot: boolean }> = [];
+  roomState.players?.forEach((player) => {
+    entries.push({
+      seat: player.seat as SeatType,
+      label: player.isBot ? 'BOT' : String(player.id).slice(0, 4),
+      ready: Boolean(player.ready),
+      isBot: Boolean(player.isBot)
+    });
+  });
+  entries.sort((a, b) => seatOrder.indexOf(a.seat) - seatOrder.indexOf(b.seat));
+  roomLobbySeats.innerHTML = entries
+    .map((entry) => {
+      const status = entry.isBot ? 'BOT' : entry.ready ? 'READY' : 'WAIT';
+      const badgeClass = entry.isBot ? 'bot' : entry.ready ? 'ready' : 'wait';
+      return `
+        <div class="lobby-row">
+          <span class="lobby-seat">${entry.seat.toUpperCase()}</span>
+          <span class="lobby-name">${entry.label}</span>
+          <span class="lobby-badge ${badgeClass}">${status}</span>
+        </div>
+      `;
+    })
+    .join('');
+  const humans = entries.filter((entry) => !entry.isBot);
+  const readyCount = humans.filter((entry) => entry.ready).length;
+  roomLobbyStatus.textContent =
+    humans.length === 0
+      ? 'Waiting for players...'
+      : readyCount === humans.length
+        ? 'All players ready. Launching...'
+        : `Ready ${readyCount}/${humans.length}`;
+  let localReady = false;
+  roomState.players?.forEach((player) => {
+    if (player.id === state.playerId) {
+      localReady = Boolean(player.ready);
+    }
+  });
+  roomReady = localReady;
+  roomReadyButton.textContent = roomReady ? 'Unready' : 'Ready';
+}
 
 function updateLobbyModeLabel() {
   lobbyModeLabel.textContent = overlayModeLabels[state.mode] ?? state.mode;
@@ -806,9 +884,18 @@ settingsFab.addEventListener('click', () => {
   settingsOverlay.classList.remove('hidden');
 });
 
-menuFab.addEventListener('click', () => {
-  void leaveRoomToMenu();
-});
+  menuFab.addEventListener('click', () => {
+    void leaveRoomToMenu();
+  });
+
+  roomReadyButton.addEventListener('click', () => {
+    if (!state.room) return;
+    state.room.send('ready', { ready: !roomReady });
+  });
+
+  roomLeaveButton.addEventListener('click', () => {
+    void leaveRoomToMenu();
+  });
 
 seatToggle.addEventListener('click', () => {
   const next = !document.body.classList.contains('seat-expanded');
@@ -1046,6 +1133,8 @@ function resolveLocalSeat() {
 
 function sendInput(input: PlayerInput) {
   if (!state.room) return;
+  const phase = (state.room.state as { phase?: string } | null)?.phase;
+  if (phase && phase !== 'running') return;
   state.room.send('input', input);
 }
 
@@ -1616,6 +1705,7 @@ function resetClientState() {
   clearAllyShips();
   setSeat('pilot');
   resetLocalActions();
+  roomReady = false;
   if (document.pointerLockElement === arena) {
     document.exitPointerLock();
   }
@@ -1624,6 +1714,7 @@ function resetClientState() {
 
 function handleRoomLeft() {
   resetClientState();
+  roomOverlay.classList.add('hidden');
   if (e2eVisualsEnabled) return;
   if (state.accessToken) {
     setOverlayScreen(e2eMode ? 'lobby' : 'menu');
@@ -1921,8 +2012,9 @@ async function connect(roomId?: string, modeHint?: GameMode | null) {
     addLog('error', 'Room connect failed', error);
     throw error;
   }
-  overlay.classList.add('hidden');
-  updateDebugMeta();
+    overlay.classList.add('hidden');
+    updateDebugMeta();
+    updateRoomLobby();
   state.room.onError((code, message) => {
     addLog('error', 'Room error', { code, message });
   });
@@ -1948,13 +2040,14 @@ async function connect(roomId?: string, modeHint?: GameMode | null) {
     }
     lastStateAt = now;
     renderLoadout();
+    updateRoomLobby();
   });
-    const roomMode = (state.room.state as { mode?: GameMode }).mode;
-    if (roomMode) {
-      state.mode = roomMode;
-      updateLobbyModeLabel();
-      syncModeInputs();
-    }
+  const roomMode = (state.room.state as { mode?: GameMode }).mode;
+  if (roomMode) {
+    state.mode = roomMode;
+    updateLobbyModeLabel();
+    syncModeInputs();
+  }
     if (typeof state.room.state.listen === 'function') {
       state.room.state.listen('mode', (value) => {
         if (value) {
@@ -3618,25 +3711,39 @@ function updateScene(dt: number) {
   const powerInput = getSeatInput('power');
   const systemsInput = getSeatInput('systems');
   const supportInput = getSeatInput('support');
+  const roomPhase = (state.room?.state as { phase?: string } | null)?.phase ?? 'running';
+  const isRunning = roomPhase === 'running';
   const radarActive = e2eRadarActive || ((state.room?.state?.support?.radarUntil ?? 0) > 0);
 
   const pilotMove =
-    state.seat === 'pilot'
-      ? pilotAxis
-      : pilotInput?.move
-        ? { x: pilotInput.move.x, y: pilotInput.move.y }
-        : { x: 0, y: 0 };
-  const pilotLift =
-    state.seat === 'pilot' ? pilotLiftAxis : typeof pilotInput?.lift === 'number' ? pilotInput.lift : 0;
-  const pilotBoostActive =
-    state.seat === 'pilot' ? pilotBoost.dataset.active === 'true' : Boolean(pilotInput?.boost);
+    isRunning
+      ? state.seat === 'pilot'
+        ? pilotAxis
+        : pilotInput?.move
+          ? { x: pilotInput.move.x, y: pilotInput.move.y }
+          : { x: 0, y: 0 }
+      : { x: 0, y: 0 };
+  const pilotLift = isRunning
+    ? state.seat === 'pilot'
+      ? pilotLiftAxis
+      : typeof pilotInput?.lift === 'number'
+        ? pilotInput.lift
+        : 0
+    : 0;
+  const pilotBoostActive = isRunning
+    ? state.seat === 'pilot'
+      ? pilotBoost.dataset.active === 'true'
+      : Boolean(pilotInput?.boost)
+    : false;
   const gunnerAim =
-    state.seat === 'gunner' || isSoloControlMode()
-      ? gunnerAxis
-      : gunnerInput?.aim
-        ? { x: gunnerInput.aim.x, y: gunnerInput.aim.y }
-        : { x: 1, y: 0 };
-  const gunnerFiring = Boolean(gunnerInput?.fire);
+    isRunning
+      ? state.seat === 'gunner' || isSoloControlMode()
+        ? gunnerAxis
+        : gunnerInput?.aim
+          ? { x: gunnerInput.aim.x, y: gunnerInput.aim.y }
+          : { x: 1, y: 0 }
+      : { x: 1, y: 0 };
+  const gunnerFiring = isRunning ? Boolean(gunnerInput?.fire) : false;
 
   if (pilotBoostActive && !sfxState.lastBoost) {
     playSfx('boost', { volume: 0.5, rate: 1.1 });

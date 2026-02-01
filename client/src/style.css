@@ -1095,6 +1095,21 @@ input[type='range'] {
   display: none;
 }
 
+.room-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(4, 6, 12, 0.78);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9;
+  pointer-events: none;
+}
+
+.room-overlay.hidden {
+  display: none;
+}
+
 .card {
   background: rgba(15, 25, 45, 0.95);
   padding: 24px;
@@ -1107,6 +1122,11 @@ input[type='range'] {
 
 .overlay-card {
   width: min(520px, 92vw);
+}
+
+.room-card {
+  width: min(460px, 90vw);
+  pointer-events: auto;
 }
 
 .overlay-screen {
@@ -1122,6 +1142,62 @@ input[type='range'] {
 .menu-copy,
 .lobby-meta {
   font-size: 0.85rem;
+  color: rgba(230, 240, 255, 0.7);
+}
+
+.lobby-seats {
+  display: grid;
+  gap: 8px;
+}
+
+.lobby-row {
+  display: grid;
+  grid-template-columns: 90px 1fr auto;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(8, 12, 22, 0.7);
+  border: 1px solid rgba(120, 150, 200, 0.2);
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+}
+
+.lobby-seat {
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+.lobby-name {
+  color: rgba(230, 240, 255, 0.8);
+}
+
+.lobby-badge {
+  font-size: 0.65rem;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(120, 150, 200, 0.35);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.lobby-badge.ready {
+  color: #7dffb3;
+  border-color: rgba(90, 220, 150, 0.5);
+}
+
+.lobby-badge.wait {
+  color: #ffcf6b;
+  border-color: rgba(255, 190, 90, 0.5);
+}
+
+.lobby-badge.bot {
+  color: rgba(230, 240, 255, 0.6);
+  border-color: rgba(120, 150, 200, 0.2);
+}
+
+.lobby-status {
+  font-size: 0.8rem;
   color: rgba(230, 240, 255, 0.7);
 }
 
