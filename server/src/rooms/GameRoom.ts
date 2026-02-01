@@ -16,6 +16,8 @@ export class GameRoom extends Room<GameState> {
   state = new GameState();
   inputs = new Map<SeatType, PlayerInput>();
   rng = mulberry32(Math.floor(Math.random() * 999999));
+  mode: 'crew' | 'single' = 'crew';
+  modeLocked = false;
   simulationTime = 0;
   damageReduction = 1;
   swapGraceUntil = 0;
@@ -31,7 +33,7 @@ export class GameRoom extends Room<GameState> {
     systems: { uses: 0 },
     support: { scans: 0, repairs: 0, loots: 0 }
   };
-  lastShipPos = { x: 0, y: 0 };
+  lastShipPos = { x: 0, y: 0, z: 0 };
   lastBoost = false;
   lastHandbrake = false;
   lastPowerPreset = '';
@@ -41,11 +43,16 @@ export class GameRoom extends Room<GameState> {
   lastSupportRepairPerfectAt = 0;
   lastSystemsOverdriveAt = 0;
   lastSystemsShieldAt = 0;
+  lastSystemsEmpAt = 0;
+  lastSystemsSlowAt = 0;
   lastPilotBoostAt = 0;
   lastPowerShiftEnginesAt = 0;
   lastPowerShiftWeaponsAt = 0;
   lastMarkedKillAt = 0;
   lastMarkedKillId = '';
+  lastSupportLootAt = 0;
+  lastUpgradeDropAt = 0;
+  achievementFlags = new Set<string>();
 
   private seatSystem = new SeatSystem(this);
   private botSystem = new BotSystem(this);
@@ -69,8 +76,16 @@ export class GameRoom extends Room<GameState> {
   };
   swapOverdriveSeconds = 0;
 
-  onCreate() {
+  onCreate(options?: { mode?: 'crew' | 'single' }) {
     this.setState(this.state);
+    if (options?.mode) {
+      this.mode = options.mode;
+      this.modeLocked = true;
+    }
+    this.maxClients = this.mode === 'single' ? 1 : 5;
+    if (this.listing) {
+      this.setMetadata({ mode: this.mode });
+    }
     this.seedSeatInputs();
     this.setSimulationInterval((deltaTime) => this.update(deltaTime), 50);
 
@@ -89,18 +104,30 @@ export class GameRoom extends Room<GameState> {
     });
   }
 
-  onJoin(client: Client, options: { userId?: string; seat?: SeatType; lockSeat?: boolean }) {
+  onJoin(
+    client: Client,
+    options: { userId?: string; seat?: SeatType; lockSeat?: boolean; mode?: 'crew' | 'single' }
+  ) {
     const playerId = options.userId ?? client.sessionId;
+    if (!this.modeLocked && options.mode) {
+      this.mode = options.mode;
+      this.modeLocked = true;
+      this.maxClients = this.mode === 'single' ? 1 : 5;
+    }
     let player = this.state.players.get(playerId);
     if (!player) {
       player = new PlayerState();
       player.id = playerId;
-      player.seat = this.seatSystem.assignSeat(playerId, options.seat);
+      const preferred = this.mode === 'single' ? 'pilot' : options.seat;
+      player.seat = this.seatSystem.assignSeat(playerId, preferred);
       player.isBot = false;
       player.connected = true;
       this.state.players.set(playerId, player);
     } else {
       player.connected = true;
+      if (this.mode === 'single') {
+        player.seat = 'pilot';
+      }
     }
     this.sessionToPlayer.set(client.sessionId, playerId);
     if (options.lockSeat) {
@@ -146,6 +173,7 @@ export class GameRoom extends Room<GameState> {
     this.upgradeSystem.update(delta);
     this.handleCombat(deltaTime);
     this.checkCombos();
+    this.checkAchievements();
     this.gunnerHeat = Math.max(0, this.gunnerHeat - delta * 0.6);
 
     if (this.state.ship.health <= 0) {
@@ -175,10 +203,14 @@ export class GameRoom extends Room<GameState> {
     owner: 'player' | 'enemy';
     x: number;
     y: number;
+    z: number;
     vx: number;
     vy: number;
+    vz: number;
     ttl: number;
     damage: number;
+    pierceRemaining?: number;
+    boomerang?: boolean;
   }) {
     const projectile = new ProjectileState();
     projectile.id = `p-${this.projectileCounter++}`;
@@ -186,10 +218,15 @@ export class GameRoom extends Room<GameState> {
     projectile.owner = options.owner;
     projectile.position.x = options.x;
     projectile.position.y = options.y;
+    projectile.position.z = options.z;
     projectile.velocity.x = options.vx;
     projectile.velocity.y = options.vy;
+    projectile.velocity.z = options.vz;
     projectile.ttl = options.ttl;
+    projectile.initialTtl = options.ttl;
     projectile.damage = options.damage;
+    projectile.pierceRemaining = options.pierceRemaining ?? 0;
+    projectile.boomerang = Boolean(options.boomerang);
     this.state.projectiles.push(projectile);
   }
 
@@ -235,8 +272,10 @@ export class GameRoom extends Room<GameState> {
         owner: 'player',
         x: ship.position.x,
         y: ship.position.y,
+        z: ship.position.z,
         vx: aimDir.x * speed,
         vy: aimDir.y * speed,
+        vz: 0,
         ttl: 2.2,
         damage: weapon.damage * damageScale
       });
@@ -256,8 +295,10 @@ export class GameRoom extends Room<GameState> {
         owner: 'player',
         x: ship.position.x,
         y: ship.position.y,
+        z: ship.position.z,
         vx: Math.cos(angle) * speed,
         vy: Math.sin(angle) * speed,
+        vz: 0,
         ttl: 1.1,
         damage: weapon.damage * damageScale
       });
@@ -272,8 +313,10 @@ export class GameRoom extends Room<GameState> {
         owner: 'player',
         x: ship.position.x,
         y: ship.position.y,
+        z: ship.position.z,
         vx: Math.cos(aimBase) * speed,
         vy: Math.sin(aimBase) * speed,
+        vz: 0,
         ttl: 1.6,
         damage: weapon.damage * damageScale
       });
@@ -281,12 +324,69 @@ export class GameRoom extends Room<GameState> {
       this.seatStats.gunner.cannons += 1;
       return;
     }
+    if (weapon.id === 'piercer') {
+      const speed = 260 + ship.energyWeapons * 60;
+      const pierceCount = ship.pierceUntil > nowSeconds ? 3 : 2;
+      this.spawnProjectile({
+        kind: 'piercer',
+        owner: 'player',
+        x: ship.position.x,
+        y: ship.position.y,
+        z: ship.position.z,
+        vx: Math.cos(aimBase) * speed,
+        vy: Math.sin(aimBase) * speed,
+        vz: 0,
+        ttl: 1.8,
+        damage: weapon.damage * damageScale,
+        pierceRemaining: pierceCount
+      });
+      this.seatStats.gunner.shots += 1;
+      return;
+    }
+    if (weapon.id === 'boomerang') {
+      const speed = 200 + ship.energyWeapons * 40;
+      const boomerangActive = ship.boomerangUntil > nowSeconds;
+      this.spawnProjectile({
+        kind: 'boomerang',
+        owner: 'player',
+        x: ship.position.x,
+        y: ship.position.y,
+        z: ship.position.z,
+        vx: Math.cos(aimBase) * speed,
+        vy: Math.sin(aimBase) * speed,
+        vz: 0,
+        ttl: boomerangActive ? 2.2 : 1.6,
+        damage: weapon.damage * damageScale,
+        boomerang: boomerangActive
+      });
+      this.seatStats.gunner.shots += 1;
+      return;
+    }
+    if (weapon.id === 'arc') {
+      const speed = 240 + ship.energyWeapons * 50;
+      this.spawnProjectile({
+        kind: 'arc',
+        owner: 'player',
+        x: ship.position.x,
+        y: ship.position.y,
+        z: ship.position.z,
+        vx: Math.cos(aimBase) * speed,
+        vy: Math.sin(aimBase) * speed,
+        vz: 0,
+        ttl: 1.5,
+        damage: weapon.damage * damageScale
+      });
+      this.seatStats.gunner.shots += 1;
+      return;
+    }
   }
 
   updateProjectiles(delta: number) {
     const now = this.simulationTime / 1000;
     const scoreBoost = this.state.ship.scoreBoostUntil > now ? 1.2 : 1;
-    const pendingExplosions: Array<{ x: number; y: number; radius: number; damage: number }> = [];
+    const chainActive = this.state.ship.chainUntil > now;
+    const poisonActive = this.state.ship.poisonUntil > now;
+    const pendingExplosions: Array<{ x: number; y: number; z: number; radius: number; damage: number }> = [];
     const statusMultiplier = (enemy: EnemyState) => {
       let mult = 1;
       if (enemy.exposedUntil > now) mult += 0.2;
@@ -301,7 +401,7 @@ export class GameRoom extends Room<GameState> {
       this.state.score += Math.floor(25 * scoreBoost);
       this.killCount += 1;
       this.seatStats.gunner.kills += 1;
-      if (enemy.kind === 'boss') {
+      if (isBossKind(enemy.kind)) {
         this.bossKillCount += 1;
       }
       if (enemy.markedUntil > now || enemy.exposedUntil > now || enemy.trackingUntil > now) {
@@ -309,9 +409,35 @@ export class GameRoom extends Room<GameState> {
         this.lastMarkedKillId = enemy.id;
       }
       this.state.enemies.splice(removeIndex, 1);
+      this.maybeDropUpgrade(isBossKind(enemy.kind) ? 'boss' : 'enemy');
     };
-    const queueExplosion = (x: number, y: number, radius: number, baseDamage: number) => {
-      pendingExplosions.push({ x, y, radius, damage: baseDamage });
+    const queueExplosion = (x: number, y: number, z: number, radius: number, baseDamage: number) => {
+      pendingExplosions.push({ x, y, z, radius, damage: baseDamage });
+    };
+    const applyChain = (source: EnemyState, baseDamage: number) => {
+      const chainTargets = this.state.enemies
+        .filter((enemy) => enemy.id !== source.id)
+        .map((enemy) => ({
+          enemy,
+          dist: distance(
+            source.position.x,
+            source.position.y,
+            source.position.z,
+            enemy.position.x,
+            enemy.position.y,
+            enemy.position.z
+          )
+        }))
+        .filter((entry) => entry.dist < 22)
+        .sort((a, b) => a.dist - b.dist)
+        .slice(0, 2);
+      for (const target of chainTargets) {
+        target.enemy.health -= baseDamage * 0.5 * statusMultiplier(target.enemy);
+        this.seatStats.gunner.hits += 1;
+        if (target.enemy.health <= 0) {
+          recordKill(target.enemy, this.state.enemies.indexOf(target.enemy));
+        }
+      }
     };
     const resolveExplosions = () => {
       while (pendingExplosions.length) {
@@ -319,7 +445,7 @@ export class GameRoom extends Room<GameState> {
         if (!next) break;
         for (let j = this.state.enemies.length - 1; j >= 0; j -= 1) {
           const enemy = this.state.enemies[j];
-          const dist = distance(next.x, next.y, enemy.position.x, enemy.position.y);
+          const dist = distance(next.x, next.y, next.z, enemy.position.x, enemy.position.y, enemy.position.z);
           if (dist > next.radius) continue;
           const falloff = 1 - dist / next.radius;
           enemy.health -= next.damage * (0.5 + 0.5 * falloff) * statusMultiplier(enemy);
@@ -328,9 +454,10 @@ export class GameRoom extends Room<GameState> {
             const volatile = enemy.volatileUntil > now;
             const ex = enemy.position.x;
             const ey = enemy.position.y;
+            const ez = enemy.position.z;
             recordKill(enemy, j);
             if (volatile) {
-              pendingExplosions.push({ x: ex, y: ey, radius: 24, damage: 18 });
+              pendingExplosions.push({ x: ex, y: ey, z: ez, radius: 24, damage: 18 });
             }
           }
         }
@@ -341,6 +468,13 @@ export class GameRoom extends Room<GameState> {
       const projectile = this.state.projectiles[i];
       projectile.position.x += projectile.velocity.x * delta;
       projectile.position.y += projectile.velocity.y * delta;
+      projectile.position.z += projectile.velocity.z * delta;
+      if (projectile.boomerang && !projectile.returning && projectile.ttl < projectile.initialTtl * 0.5) {
+        projectile.velocity.x *= -1;
+        projectile.velocity.y *= -1;
+        projectile.velocity.z *= -1;
+        projectile.returning = true;
+      }
       projectile.ttl -= delta;
       let exploded = false;
       if (projectile.owner === 'player') {
@@ -352,13 +486,15 @@ export class GameRoom extends Room<GameState> {
             const dist = distance(
               projectile.position.x,
               projectile.position.y,
+              projectile.position.z,
               enemy.position.x,
-              enemy.position.y
+              enemy.position.y,
+              enemy.position.z
             );
             if (dist < hitRadius + trackingBonus) {
               const radius = projectile.kind === 'rocket' ? 20 : 14;
               const damage = projectile.damage || (projectile.kind === 'rocket' ? 40 : 18);
-              queueExplosion(projectile.position.x, projectile.position.y, radius, damage);
+              queueExplosion(projectile.position.x, projectile.position.y, projectile.position.z, radius, damage);
               resolveExplosions();
               projectile.ttl = 0;
               exploded = true;
@@ -373,16 +509,28 @@ export class GameRoom extends Room<GameState> {
             const dist = distance(
               projectile.position.x,
               projectile.position.y,
+              projectile.position.z,
               enemy.position.x,
-              enemy.position.y
+              enemy.position.y,
+              enemy.position.z
             );
             if (dist < hitRadius + trackingBonus) {
               enemy.health -= (projectile.damage || 8) * statusMultiplier(enemy);
               this.seatStats.gunner.hits += 1;
-              projectile.ttl = 0;
+              if (poisonActive || projectile.kind === 'arc') {
+                enemy.poisonedUntil = Math.max(enemy.poisonedUntil, now + 4);
+              }
+              if (chainActive || enemy.shockedUntil > now || projectile.kind === 'arc') {
+                applyChain(enemy, projectile.damage || 8);
+              }
+              if (projectile.pierceRemaining > 0) {
+                projectile.pierceRemaining -= 1;
+              } else {
+                projectile.ttl = 0;
+              }
               if (enemy.health <= 0) {
                 if (enemy.volatileUntil > now) {
-                  queueExplosion(enemy.position.x, enemy.position.y, 24, 18);
+                  queueExplosion(enemy.position.x, enemy.position.y, enemy.position.z, 24, 18);
                   resolveExplosions();
                 }
                 recordKill(enemy, j);
@@ -393,7 +541,14 @@ export class GameRoom extends Room<GameState> {
         }
       } else {
         const ship = this.state.ship;
-        const dist = distance(projectile.position.x, projectile.position.y, ship.position.x, ship.position.y);
+        const dist = distance(
+          projectile.position.x,
+          projectile.position.y,
+          projectile.position.z,
+          ship.position.x,
+          ship.position.y,
+          ship.position.z
+        );
         if (dist < 7) {
           this.damageShip(projectile.damage || 8);
           projectile.ttl = 0;
@@ -403,7 +558,7 @@ export class GameRoom extends Room<GameState> {
         if (!exploded && projectile.owner === 'player' && (projectile.kind === 'rocket' || projectile.kind === 'cannon')) {
           const radius = projectile.kind === 'rocket' ? 18 : 12;
           const damage = projectile.damage || (projectile.kind === 'rocket' ? 36 : 16);
-          queueExplosion(projectile.position.x, projectile.position.y, radius, damage);
+          queueExplosion(projectile.position.x, projectile.position.y, projectile.position.z, radius, damage);
           resolveExplosions();
         }
         this.state.projectiles.splice(i, 1);
@@ -433,6 +588,7 @@ export class GameRoom extends Room<GameState> {
       systems.empUntil = now + 2;
       for (const enemy of this.state.enemies) {
         enemy.slowUntil = Math.max(enemy.slowUntil, now + 2);
+        enemy.shockedUntil = Math.max(enemy.shockedUntil, now + 2.4);
         if (systems.empMode === 'overcharge') {
           this.applyStatus(enemy, 'exposed', now);
         }
@@ -441,6 +597,7 @@ export class GameRoom extends Room<GameState> {
           this.applyStatus(enemy, 'exposed', now);
         }
       }
+      this.lastSystemsEmpAt = now;
       this.seatStats.systems.uses += 1;
     }
 
@@ -466,6 +623,7 @@ export class GameRoom extends Room<GameState> {
       const wide = systems.slowMode === 'wide';
       systems.slowFieldUntil = now + (wide ? 5.5 : 4);
       systems.slowFieldRadius = wide ? 160 : 120;
+      this.lastSystemsSlowAt = now;
       this.seatStats.systems.uses += 1;
     }
 
@@ -521,7 +679,7 @@ export class GameRoom extends Room<GameState> {
         enemy.markedUntil = Math.max(enemy.markedUntil, now + 6);
         this.applyStatus(enemy, 'exposed', now);
       }
-      const volatileTarget = this.state.enemies.find((enemy) => enemy.kind === 'boss') ?? this.state.enemies[0];
+          const volatileTarget = this.state.enemies.find((enemy) => isBossKind(enemy.kind)) ?? this.state.enemies[0];
       if (volatileTarget) this.applyStatus(volatileTarget, 'volatile', now);
       const trackingTarget = this.state.enemies[this.state.enemies.length - 1];
       if (trackingTarget) this.applyStatus(trackingTarget, 'tracking', now);
@@ -558,6 +716,8 @@ export class GameRoom extends Room<GameState> {
     if (action === 'loot' && support.radarUntil <= 0) {
       support.radarUntil = 4;
       this.seatStats.support.loots += 1;
+      this.lastSupportLootAt = now;
+      this.maybeDropUpgrade('event');
     }
   }
 
@@ -606,6 +766,28 @@ export class GameRoom extends Room<GameState> {
       this.state.ship.powerOverloadUntil = 0;
       this.state.ship.powerInstability = Math.max(0, this.state.ship.powerInstability - 0.4);
     }
+    if (id === 'shockchain') {
+      this.state.ship.chainUntil = now + 4;
+      this.state.ship.visionPulseUntil = Math.max(this.state.ship.visionPulseUntil, now + 2.5);
+    }
+    if (id === 'toxicloud') {
+      this.state.ship.poisonUntil = now + 4.5;
+      this.state.ship.comboTrailUntil = Math.max(this.state.ship.comboTrailUntil, now + 2.5);
+    }
+    if (id === 'piercingrun') {
+      this.state.ship.pierceUntil = now + 4;
+      this.state.ship.boomerangUntil = now + 4;
+    }
+
+    if (id === 'shockchain') {
+      this.awardAchievement('shockchain', 'Shock Chain Unlocked');
+    }
+    if (id === 'toxicloud') {
+      this.awardAchievement('toxicloud', 'Toxic Cloud Unlocked');
+    }
+    if (id === 'piercingrun') {
+      this.awardAchievement('piercingrun', 'Piercing Run Unlocked');
+    }
   }
 
   private checkCombos() {
@@ -640,18 +822,63 @@ export class GameRoom extends Room<GameState> {
       this.triggerCombo('stabilization', 'Perfect repair during shield burst', now);
       this.lastSupportRepairPerfectAt = 0;
     }
+
+    const shockWindow = (comboById.get('shockchain')?.windowMs ?? 1200) / 1000;
+    if (
+      now - this.lastSupportScanAt <= shockWindow &&
+      now - this.lastSystemsEmpAt <= shockWindow &&
+      now - this.lastMarkedKillAt <= shockWindow
+    ) {
+      this.triggerCombo('shockchain', 'Scan + EMP + marked kill', now);
+      this.lastSystemsEmpAt = 0;
+    }
+
+    const toxicWindow = (comboById.get('toxicloud')?.windowMs ?? 1300) / 1000;
+    if (
+      now - this.lastSupportLootAt <= toxicWindow &&
+      now - this.lastSystemsSlowAt <= toxicWindow &&
+      now - this.lastPowerShiftWeaponsAt <= toxicWindow
+    ) {
+      this.triggerCombo('toxicloud', 'Loot + slow field + weapons surge', now);
+      this.lastSupportLootAt = 0;
+    }
+
+    const piercingWindow = (comboById.get('piercingrun')?.windowMs ?? 1200) / 1000;
+    if (
+      now - this.lastSystemsOverdriveAt <= piercingWindow &&
+      now - this.lastPowerShiftWeaponsAt <= piercingWindow &&
+      now - this.lastPilotBoostAt <= 1.4
+    ) {
+      this.triggerCombo('piercingrun', 'Overdrive + weapons shift + boost', now);
+      this.lastSystemsOverdriveAt = 0;
+    }
+  }
+
+  private awardAchievement(id: string, label: string) {
+    if (this.achievementFlags.has(id)) return;
+    this.achievementFlags.add(id);
+    this.broadcast('achievement', { id, label });
+  }
+
+  private checkAchievements() {
+    if (this.killCount >= 25) this.awardAchievement('kill-25', '25 Eliminations');
+    if (this.killCount >= 100) this.awardAchievement('kill-100', '100 Eliminations');
+    if (this.bossKillCount >= 1) this.awardAchievement('boss-1', 'First Boss Down');
+    if (this.state.wave >= 10) this.awardAchievement('wave-10', 'Wave 10 Survivor');
   }
 
   private updateSeatStats(delta: number) {
     const ship = this.state.ship;
     const dx = ship.position.x - this.lastShipPos.x;
     const dy = ship.position.y - this.lastShipPos.y;
-    const dist = Math.hypot(dx, dy);
+    const dz = ship.position.z - this.lastShipPos.z;
+    const dist = Math.hypot(dx, dy, dz);
     if (dist > 0) {
       this.seatStats.pilot.distance += dist;
     }
     this.lastShipPos.x = ship.position.x;
     this.lastShipPos.y = ship.position.y;
+    this.lastShipPos.z = ship.position.z;
 
     const pilotInput = this.inputs.get('pilot');
     const boost = Boolean(pilotInput?.boost);
@@ -695,7 +922,7 @@ export class GameRoom extends Room<GameState> {
       systems: { uses: 0 },
       support: { scans: 0, repairs: 0, loots: 0 }
     };
-    this.lastShipPos = { x: this.state.ship.position.x, y: this.state.ship.position.y };
+    this.lastShipPos = { x: this.state.ship.position.x, y: this.state.ship.position.y, z: this.state.ship.position.z };
     this.lastBoost = false;
     this.lastHandbrake = false;
     this.lastPowerPreset = '';
@@ -703,6 +930,13 @@ export class GameRoom extends Room<GameState> {
   }
 
   refreshBots() {
+    if (this.mode === 'single') {
+      this.botSeats.clear();
+      for (const [id, player] of this.state.players.entries()) {
+        if (player.isBot) this.state.players.delete(id);
+      }
+      return;
+    }
     const activeSeats = new Set<SeatType>();
     for (const player of this.state.players.values()) {
       if (player.connected && !player.isBot) {
@@ -762,6 +996,7 @@ export class GameRoom extends Room<GameState> {
       if (seat === 'pilot') {
         this.lastPilotMove = move;
       }
+      entry.lift = input?.lift ?? 0;
 
       let aim = input?.aim ?? { x: 1, y: 0 };
       if (seat === 'gunner') {
@@ -816,15 +1051,23 @@ export class GameRoom extends Room<GameState> {
       const reflectRadius = 26;
       for (let i = this.state.enemies.length - 1; i >= 0; i -= 1) {
         const enemy = this.state.enemies[i];
-        const dist = distance(ship.position.x, ship.position.y, enemy.position.x, enemy.position.y);
+        const dist = distance(
+          ship.position.x,
+          ship.position.y,
+          ship.position.z,
+          enemy.position.x,
+          enemy.position.y,
+          enemy.position.z
+        );
         if (dist > reflectRadius) continue;
         enemy.health -= amount * 0.4;
         if (enemy.health <= 0) {
           this.killCount += 1;
-          if (enemy.kind === 'boss') {
-            this.bossKillCount += 1;
-          }
-          this.state.enemies.splice(i, 1);
+        if (isBossKind(enemy.kind)) {
+          this.bossKillCount += 1;
+        }
+        this.state.enemies.splice(i, 1);
+          this.maybeDropUpgrade(isBossKind(enemy.kind) ? 'boss' : 'enemy');
         }
         break;
       }
@@ -835,6 +1078,17 @@ export class GameRoom extends Room<GameState> {
     const residual = amount - shieldHit;
     const mitigation = 1 - ship.energyShields * 0.15;
     ship.health = Math.max(ship.health - residual * mitigation, 0);
+  }
+
+  maybeDropUpgrade(source: 'enemy' | 'boss' | 'event') {
+    if (this.state.upgradeChoices.length) return;
+    const now = this.simulationTime / 1000;
+    const cooldown = source === 'boss' ? 6 : 8;
+    if (now - this.lastUpgradeDropAt < cooldown) return;
+    const chance = source === 'boss' ? 1 : source === 'event' ? 0.7 : 0.2;
+    if (source !== 'boss' && this.rng() > chance) return;
+    this.lastUpgradeDropAt = now;
+    this.upgradeSystem.rollUpgrades();
   }
 
   applyUpgrade(upgradeId: string) {
@@ -880,6 +1134,10 @@ export class GameRoom extends Room<GameState> {
   }
 }
 
-function distance(ax: number, ay: number, bx: number, by: number) {
-  return Math.hypot(ax - bx, ay - by);
+function distance(ax: number, ay: number, az: number, bx: number, by: number, bz: number) {
+  return Math.hypot(ax - bx, ay - by, az - bz);
+}
+
+function isBossKind(kind: string) {
+  return kind.startsWith('boss-');
 }

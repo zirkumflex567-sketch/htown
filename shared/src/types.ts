@@ -5,9 +5,16 @@ export interface Vector2 {
   y: number;
 }
 
+export interface Vector3 {
+  x: number;
+  y: number;
+  z: number;
+}
+
 export interface PlayerInput {
   seat: SeatType;
   move?: Vector2;
+  lift?: number;
   boost?: boolean;
   throttle?: number;
   brake?: number;
@@ -51,7 +58,7 @@ export interface EnemyDefinition {
   speed: number;
   health: number;
   damage: number;
-  behavior: 'chaser' | 'runner' | 'spitter' | 'boss';
+  behavior: 'chaser' | 'runner' | 'spitter' | 'lurker' | 'brute' | 'swarm' | 'boss';
 }
 
 export interface UpgradeDefinition {

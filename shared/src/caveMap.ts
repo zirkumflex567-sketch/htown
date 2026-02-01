@@ -78,19 +78,25 @@ export function closestPointOnCave(px: number, py: number): CaveSample {
   return best;
 }
 
-export function clampToCave(px: number, py: number, padding = 0) {
+export function clampToCave(px: number, py: number, pz = 0, padding = 0) {
   const closest = closestPointOnCave(px, py);
   const allowed = Math.max(4, closest.radius - padding);
-  if (closest.distance <= allowed) {
-    return { x: px, y: py, outside: false, ...closest };
+  const dx = px - closest.x;
+  const dy = py - closest.y;
+  const dz = pz;
+  const dist = Math.hypot(dx, dy, dz) || 1;
+  if (dist <= allowed) {
+    return { x: px, y: py, z: pz, outside: false, ...closest, distance: dist };
   }
-  const dist = closest.distance || 1;
-  const nx = (px - closest.x) / dist;
-  const ny = (py - closest.y) / dist;
+  const nx = dx / dist;
+  const ny = dy / dist;
+  const nz = dz / dist;
   return {
     x: closest.x + nx * allowed,
     y: closest.y + ny * allowed,
+    z: nz * allowed,
     outside: true,
-    ...closest
+    ...closest,
+    distance: dist
   };
 }

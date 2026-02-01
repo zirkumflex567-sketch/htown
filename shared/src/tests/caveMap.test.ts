@@ -9,7 +9,7 @@ describe('caveMap', () => {
   });
 
   it('clamps far away point back into the cave', () => {
-    const sample = clampToCave(1000, 1000, 0);
+    const sample = clampToCave(1000, 1000, 0, 0);
     expect(sample.outside).toBe(true);
     expect(sample.distance).toBeGreaterThan(0);
     expect(sample.radius).toBeGreaterThan(0);
@@ -21,7 +21,7 @@ describe('caveMap', () => {
     const nx = -sample.tangentY;
     const ny = sample.tangentX;
     const offset = Math.min(1, sample.radius * 0.3);
-    const inside = clampToCave(sample.x + nx * offset, sample.y + ny * offset, 0);
+    const inside = clampToCave(sample.x + nx * offset, sample.y + ny * offset, 0, 0);
     expect(inside.outside).toBe(false);
     expect(inside.distance).toBeLessThan(sample.radius);
   });
@@ -29,7 +29,7 @@ describe('caveMap', () => {
   it('radius interpolates between control points', () => {
     const a = cavePath[0];
     const b = cavePath[1];
-    const mid = clampToCave((a.x + b.x) * 0.5, (a.y + b.y) * 0.5, 0);
+    const mid = clampToCave((a.x + b.x) * 0.5, (a.y + b.y) * 0.5, 0, 0);
     expect(mid.radius).toBeGreaterThan(0);
     expect(mid.radius).toBeLessThanOrEqual(Math.max(a.radius ?? caveBaseRadius, b.radius ?? caveBaseRadius));
   });

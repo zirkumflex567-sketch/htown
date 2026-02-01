@@ -27,11 +27,27 @@ describe('Balance checks', () => {
     };
     const system = new ShipSystem(room as never);
     system.update(0.1);
-    const speed = Math.hypot(state.ship.velocity.x, state.ship.velocity.y);
+    const speed = Math.hypot(state.ship.velocity.x, state.ship.velocity.y, state.ship.velocity.z);
     expect(speed).toBeLessThanOrEqual(122);
   });
 
-  it('spawns a boss on every 5th wave', () => {
+  it('spawns a boss on every 5th wave cadence', () => {
+    const room = {
+      state: new GameState(),
+      rng: () => 0.5,
+      simulationTime: 0,
+      damageReduction: 1,
+      spawnProjectile: vi.fn()
+    };
+    room.state.wave = 5;
+    const system = new EnemySystem(room as never);
+    system.spawnWave();
+    expect(room.state.wave).toBe(6);
+    const hasBoss = room.state.enemies.some((enemy) => enemy.kind.startsWith('boss-'));
+    expect(hasBoss).toBe(true);
+  });
+
+  it('does not spawn a boss off cadence', () => {
     const room = {
       state: new GameState(),
       rng: () => 0.5,
@@ -42,8 +58,7 @@ describe('Balance checks', () => {
     room.state.wave = 4;
     const system = new EnemySystem(room as never);
     system.spawnWave();
-    expect(room.state.wave).toBe(5);
-    const hasBoss = room.state.enemies.some((enemy) => enemy.kind === 'boss');
-    expect(hasBoss).toBe(true);
+    const hasBoss = room.state.enemies.some((enemy) => enemy.kind.startsWith('boss-'));
+    expect(hasBoss).toBe(false);
   });
 });

@@ -2,5 +2,10 @@
   {"id":"chaser","name":"Chaser","speed":42,"health":30,"damage":8,"behavior":"chaser"},
   {"id":"runner","name":"Runner","speed":68,"health":20,"damage":6,"behavior":"runner"},
   {"id":"spitter","name":"Spitter","speed":36,"health":26,"damage":10,"behavior":"spitter"},
-  {"id":"boss","name":"Warden","speed":24,"health":240,"damage":20,"behavior":"boss"}
+  {"id":"lurker","name":"Lurker","speed":34,"health":28,"damage":9,"behavior":"lurker"},
+  {"id":"brute","name":"Brute","speed":28,"health":55,"damage":14,"behavior":"brute"},
+  {"id":"swarm","name":"Swarmling","speed":78,"health":16,"damage":5,"behavior":"swarm"},
+  {"id":"boss-warden","name":"Warden","speed":24,"health":260,"damage":20,"behavior":"boss"},
+  {"id":"boss-siren","name":"Siren","speed":30,"health":220,"damage":18,"behavior":"boss"},
+  {"id":"boss-behemoth","name":"Behemoth","speed":20,"health":320,"damage":24,"behavior":"boss"}
 ]

@@ -5,6 +5,7 @@ export class BotSystem {
   constructor(private room: GameRoom) {}
 
   update() {
+    if (this.room.mode === 'single') return;
     const ship = this.room.state.ship;
     const enemies = this.room.state.enemies;
     const nearest = enemies[0];
@@ -28,6 +29,7 @@ export class BotSystem {
               x: evasion.x * 0.6 + dir.x * 0.4,
               y: evasion.y * 0.6 + dir.y * 0.4
             },
+            lift: 0,
             boost: ship.health < 40 || enemies.length > 6
           });
           break;

@@ -6,6 +6,12 @@ export class Vec2 extends Schema {
   @type('number') y = 0;
 }
 
+export class Vec3 extends Schema {
+  @type('number') x = 0;
+  @type('number') y = 0;
+  @type('number') z = 0;
+}
+
 export class PlayerState extends Schema {
   @type('string') id = '';
   @type('string') seat: SeatType = 'pilot';
@@ -17,6 +23,7 @@ export class SeatInputState extends Schema {
   @type('string') seat: SeatType = 'pilot';
   @type(Vec2) move = new Vec2();
   @type(Vec2) aim = new Vec2();
+  @type('number') lift = 0;
   @type('boolean') boost = false;
   @type('boolean') fire = false;
   @type('number') weaponIndex = 0;
@@ -31,8 +38,8 @@ export class SeatInputState extends Schema {
 export class EnemyState extends Schema {
   @type('string') id = '';
   @type('string') kind = 'chaser';
-  @type(Vec2) position = new Vec2();
-  @type(Vec2) velocity = new Vec2();
+  @type(Vec3) position = new Vec3();
+  @type(Vec3) velocity = new Vec3();
   @type('number') yaw = 0;
   @type('number') markedUntil = 0;
   @type('number') exposedUntil = 0;
@@ -40,6 +47,8 @@ export class EnemyState extends Schema {
   @type('number') trackingUntil = 0;
   @type('number') weakpointUntil = 0;
   @type('number') slowUntil = 0;
+  @type('number') shockedUntil = 0;
+  @type('number') poisonedUntil = 0;
   @type('number') telegraphUntil = 0;
   @type('number') attackCooldown = 0;
   @type('string') attackMode = '';
@@ -47,8 +56,8 @@ export class EnemyState extends Schema {
 }
 
 export class ShipState extends Schema {
-  @type(Vec2) position = new Vec2();
-  @type(Vec2) velocity = new Vec2();
+  @type(Vec3) position = new Vec3();
+  @type(Vec3) velocity = new Vec3();
   @type('number') heading = 0;
   @type('number') health = 100;
   @type('number') shield = 50;
@@ -73,6 +82,10 @@ export class ShipState extends Schema {
   @type('number') hullRegenUntil = 0;
   @type('number') scoreBoostUntil = 0;
   @type('number') reflectUntil = 0;
+  @type('number') chainUntil = 0;
+  @type('number') poisonUntil = 0;
+  @type('number') pierceUntil = 0;
+  @type('number') boomerangUntil = 0;
 }
 
 export class UpgradeState extends Schema {
@@ -86,10 +99,14 @@ export class ProjectileState extends Schema {
   @type('string') id = '';
   @type('string') kind = 'mg';
   @type('string') owner = 'player';
-  @type(Vec2) position = new Vec2();
-  @type(Vec2) velocity = new Vec2();
+  @type(Vec3) position = new Vec3();
+  @type(Vec3) velocity = new Vec3();
   @type('number') ttl = 0;
+  @type('number') initialTtl = 0;
   @type('number') damage = 0;
+  @type('number') pierceRemaining = 0;
+  @type('boolean') boomerang = false;
+  @type('boolean') returning = false;
 }
 
 export class SystemsState extends Schema {

@@ -7,7 +7,10 @@ const makeRoom = () => ({
   rng: () => 0.5,
   simulationTime: 0,
   damageReduction: 1,
-  spawnProjectile: vi.fn()
+  spawnProjectile: vi.fn(),
+  maybeDropUpgrade: vi.fn(),
+  killCount: 0,
+  bossKillCount: 0
 });
 
 describe('EnemySystem', () => {
@@ -16,12 +19,14 @@ describe('EnemySystem', () => {
     room.simulationTime = 2000;
     room.state.ship.position.x = 0;
     room.state.ship.position.y = 0;
+    room.state.ship.position.z = 0;
     const enemy = new EnemyState();
     enemy.id = 'spitter-1';
     enemy.kind = 'spitter';
     enemy.health = 10;
     enemy.position.x = 40;
     enemy.position.y = 0;
+    enemy.position.z = 0;
     room.state.enemies.push(enemy);
     const system = new EnemySystem(room as never);
     system.update(0.1);
@@ -33,12 +38,14 @@ describe('EnemySystem', () => {
     room.simulationTime = 2000;
     room.state.ship.position.x = 0;
     room.state.ship.position.y = 0;
+    room.state.ship.position.z = 0;
     const boss = new EnemyState();
     boss.id = 'boss-1';
-    boss.kind = 'boss';
+    boss.kind = 'boss-warden';
     boss.health = 100;
     boss.position.x = 60;
     boss.position.y = 0;
+    boss.position.z = 0;
     room.state.enemies.push(boss);
     const system = new EnemySystem(room as never);
     system.update(0.1);
@@ -52,15 +59,37 @@ describe('EnemySystem', () => {
     const room = makeRoom();
     room.state.ship.position.x = 120;
     room.state.ship.position.y = -80;
+    room.state.ship.position.z = 0;
     const system = new EnemySystem(room as never);
     system.spawnWave();
     expect(room.state.enemies.length).toBeGreaterThan(0);
     const tooFar = room.state.enemies.some((enemy) => {
       const dx = enemy.position.x - room.state.ship.position.x;
       const dy = enemy.position.y - room.state.ship.position.y;
-      const dist = Math.hypot(dx, dy);
+      const dz = enemy.position.z - room.state.ship.position.z;
+      const dist = Math.hypot(dx, dy, dz);
       return dist > 220;
     });
     expect(tooFar).toBe(false);
+  });
+
+  it('applies poison damage over time', () => {
+    const room = makeRoom();
+    room.simulationTime = 1000;
+    room.state.ship.position.x = 0;
+    room.state.ship.position.y = 0;
+    room.state.ship.position.z = 0;
+    const enemy = new EnemyState();
+    enemy.id = 'poison-1';
+    enemy.kind = 'chaser';
+    enemy.health = 10;
+    enemy.position.x = 20;
+    enemy.position.y = 0;
+    enemy.position.z = 0;
+    enemy.poisonedUntil = room.simulationTime / 1000 + 2;
+    room.state.enemies.push(enemy);
+    const system = new EnemySystem(room as never);
+    system.update(0.5);
+    expect(enemy.health).toBeLessThan(10);
   });
 });

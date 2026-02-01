@@ -102,8 +102,9 @@ gameServer.define('game', GameRoom).enableRealtimeListing();
 
 const roomCodes = new Map<string, string>();
 
-app.post('/matchmake/create', requireAuth, async (_req: AuthedRequest, res) => {
-  const room = await gameServer.create('game', {});
+app.post('/matchmake/create', requireAuth, async (req: AuthedRequest, res) => {
+  const { mode } = req.body ?? {};
+  const room = await gameServer.create('game', { mode });
   const code = Math.random().toString(36).slice(2, 6).toUpperCase();
   roomCodes.set(code, room.roomId);
   return res.json({ code, roomId: room.roomId });
