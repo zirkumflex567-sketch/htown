@@ -1,5 +1,5 @@
 import { Schema, type, MapSchema, ArraySchema } from '@colyseus/schema';
-import type { SeatType } from '@htown/shared';
+import type { GameMode, SeatType } from '@htown/shared';
 
 export class Vec2 extends Schema {
   @type('number') x = 0;
@@ -134,7 +134,9 @@ export class SupportState extends Schema {
 }
 
 export class GameState extends Schema {
+  @type('string') mode: GameMode = 'crew';
   @type(ShipState) ship = new ShipState();
+  @type({ map: ShipState }) ships = new MapSchema<ShipState>();
   @type({ map: PlayerState }) players = new MapSchema<PlayerState>();
   @type({ map: SeatInputState }) seatInputs = new MapSchema<SeatInputState>();
   @type([EnemyState]) enemies = new ArraySchema<EnemyState>();

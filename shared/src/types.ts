@@ -1,5 +1,7 @@
 export type SeatType = 'pilot' | 'gunner' | 'power' | 'systems' | 'support';
 
+export type GameMode = 'crew' | 'solo' | 'single';
+
 export interface Vector2 {
   x: number;
   y: number;

@@ -4,7 +4,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
 import { Client } from 'colyseus.js';
 import { caveBaseRadius, cavePath, mulberry32, weapons as weaponDefs } from '@htown/shared';
-import type { PlayerInput, SeatType } from '@htown/shared';
+import type { GameMode, PlayerInput, SeatType } from '@htown/shared';
 
 const defaultServerHost = window.location.hostname || 'localhost';
 const urlParams = new URLSearchParams(window.location.search);
@@ -24,7 +24,7 @@ const client = new Client(serverUrl.replace('http', 'ws'));
 const state = {
   room: null as null | import('colyseus.js').Room,
   seat: 'pilot' as SeatType,
-  mode: 'crew' as 'crew' | 'single',
+  mode: 'crew' as GameMode,
   accessToken: localStorage.getItem('accessToken') ?? '',
   refreshToken: localStorage.getItem('refreshToken') ?? '',
   playerId: '' as string,
@@ -149,6 +149,7 @@ app.innerHTML = `
         </div>
         <h3>Matchmaking</h3>
         <div class="mode-select">
+          <label><input type="radio" name="game-mode" value="solo" /> Solo Ships</label>
           <label><input type="radio" name="game-mode" value="single" /> Solo Control</label>
           <label><input type="radio" name="game-mode" value="crew" checked /> Crew Seats</label>
         </div>
@@ -895,11 +896,31 @@ if (e2eMode) {
   (window as unknown as { __htownSetSeat?: (seat: SeatType) => void }).__htownSetSeat = (seat: SeatType) => {
     setSeat(seat);
   };
+  (window as unknown as {
+    __htownGetRoomSnapshot?: () => { mode: GameMode | null; shipCount: number; playerCount: number };
+  }).__htownGetRoomSnapshot = () => {
+    const roomState = state.room?.state as
+      | { mode?: GameMode; ships?: { forEach?: (cb: (ship: any, id: string) => void) => void }; players?: { size?: number } }
+      | undefined;
+    const ships = roomState?.ships;
+    let shipCount = 0;
+    if (ships?.forEach) {
+      ships.forEach(() => {
+        shipCount += 1;
+      });
+    }
+    const playerCount = roomState?.players?.size ?? 0;
+    return { mode: roomState?.mode ?? null, shipCount, playerCount };
+  };
 }
 
 function resolveLocalSeat() {
   if (e2eSeat) {
     if (state.seat !== e2eSeat) setSeat(e2eSeat);
+    return;
+  }
+  if (getRoomMode() === 'solo') {
+    if (state.seat !== 'pilot') setSeat('pilot');
     return;
   }
   const players = state.room?.state?.players as
@@ -1156,7 +1177,7 @@ function applyGamepadInputs() {
     sendPilotInput();
   }
 
-  if (state.seat === 'gunner' || state.mode === 'single') {
+  if (state.seat === 'gunner' || isSoloControlMode()) {
     const aimX = pad.axes[2] ?? 0;
     const aimY = pad.axes[3] ?? 0;
     if (Math.hypot(aimX, aimY) > 0.15) {
@@ -1296,20 +1317,20 @@ function applyKeyAction(action: KeybindAction, isDown: boolean) {
       if (state.seat === 'pilot') keyState.handbrake = isDown;
       break;
     case 'gunner.prevWeapon':
-      if (isDown && (state.seat === 'gunner' || state.mode === 'single')) cycleWeapon(-1);
+      if (isDown && (state.seat === 'gunner' || isSoloControlMode())) cycleWeapon(-1);
       break;
     case 'gunner.nextWeapon':
-      if (isDown && (state.seat === 'gunner' || state.mode === 'single')) cycleWeapon(1);
+      if (isDown && (state.seat === 'gunner' || isSoloControlMode())) cycleWeapon(1);
       break;
     case 'gunner.fire':
-      if (state.seat === 'gunner' || state.mode === 'single') {
+      if (state.seat === 'gunner' || isSoloControlMode()) {
         localActions.gunner.fire = isDown;
         gunnerFire.dataset.active = isDown ? 'true' : 'false';
         sendGunnerInput();
       }
       break;
     case 'gunner.altFire':
-      if (state.seat === 'gunner' || state.mode === 'single') {
+      if (state.seat === 'gunner' || isSoloControlMode()) {
         localActions.gunner.altFire = isDown;
         sendGunnerInput();
       }
@@ -1524,7 +1545,7 @@ async function connect(roomId?: string) {
   }
   state.playerId = getTokenPayload(state.accessToken) ?? '';
   updateDebugMeta();
-  const options: { userId: string; seat?: SeatType; lockSeat?: boolean; mode?: 'crew' | 'single' } = {
+  const options: { userId: string; seat?: SeatType; lockSeat?: boolean; mode?: GameMode; accessToken?: string } = {
     userId: state.playerId,
     mode: state.mode
   };
@@ -1532,10 +1553,11 @@ async function connect(roomId?: string) {
     options.seat = e2eSeat;
     options.lockSeat = true;
   }
-  if (!e2eSeat && state.mode === 'single') {
+  if (!e2eSeat && getRoomMode() !== 'crew') {
     options.seat = 'pilot';
     options.lockSeat = true;
   }
+  options.accessToken = state.accessToken;
   addLog('info', 'Connecting to room', { roomId: roomId ?? 'matchmake', userId: state.playerId });
   try {
     state.room = roomId ? await client.joinById(roomId, options) : await client.joinOrCreate('game', options);
@@ -1569,6 +1591,13 @@ async function connect(roomId?: string) {
     }
     lastStateAt = now;
   });
+  const roomMode = (state.room.state as { mode?: GameMode }).mode;
+  if (roomMode) state.mode = roomMode;
+  if (typeof state.room.state.listen === 'function') {
+    state.room.state.listen('mode', (value) => {
+      if (value) state.mode = value as GameMode;
+    });
+  }
   let localPlayerBound = false;
   const bindLocalPlayer = (player: any, key: string) => {
     if (localPlayerBound || key !== state.playerId) return;
@@ -1621,9 +1650,12 @@ async function connect(roomId?: string) {
   resolveLocalSeat();
   state.room.state.upgradeChoices.onAdd = () => {
     if (state.room?.state.upgradeChoices.length) {
-      const choices = state.room.state.upgradeChoices.filter(
-        (choice) => choice.seat === 'all' || choice.seat === state.seat
-      );
+      const allowAllSeats = getRoomMode() !== 'crew';
+      const choices = allowAllSeats
+        ? state.room.state.upgradeChoices
+        : state.room.state.upgradeChoices.filter(
+            (choice) => choice.seat === 'all' || choice.seat === state.seat
+          );
       if (!choices.length) {
         upgrade.innerHTML = `<strong>Upgrade</strong><span>Waiting for seat pick...</span>`;
         upgrade.classList.add('show');
@@ -1695,7 +1727,13 @@ registerButton.addEventListener('click', async () => {
 
 document.querySelectorAll<HTMLInputElement>('input[name="game-mode"]').forEach((input) => {
   input.addEventListener('change', () => {
-    state.mode = input.value === 'single' ? 'single' : 'crew';
+    if (input.value === 'single') {
+      state.mode = 'single';
+    } else if (input.value === 'solo') {
+      state.mode = 'solo';
+    } else {
+      state.mode = 'crew';
+    }
   });
 });
 
@@ -1798,7 +1836,7 @@ document.body.addEventListener('pointerdown', () => {
   if (document.activeElement !== arena) arena.focus();
 });
 arena.addEventListener('click', () => {
-  if ((state.seat === 'gunner' || state.mode === 'single') && document.pointerLockElement !== arena) {
+  if ((state.seat === 'gunner' || isSoloControlMode()) && document.pointerLockElement !== arena) {
     arena.requestPointerLock();
   }
 });
@@ -1825,7 +1863,7 @@ arena.addEventListener('mousemove', (event) => {
     sendPilotInput();
     return;
   }
-  if (state.seat !== 'gunner' && state.mode !== 'single') return;
+  if (state.seat !== 'gunner' && !isSoloControlMode()) return;
   if (canvas && event.target !== canvas) return;
   const rect = arena.getBoundingClientRect();
   const cx = rect.left + rect.width / 2;
@@ -1871,7 +1909,7 @@ document.addEventListener('pointerlockchange', () => {
 
 window.addEventListener('mousemove', (event) => {
   if (document.pointerLockElement !== arena) return;
-  if (state.seat !== 'gunner' && state.mode !== 'single') return;
+  if (state.seat !== 'gunner' && !isSoloControlMode()) return;
   const sensitivity = 0.0035;
   localActions.gunner.aimYaw += event.movementX * sensitivity;
   const invert = settings.invertY ? -1 : 1;
@@ -1912,7 +1950,7 @@ window.addEventListener('mousemove', (event) => {
 });
 
 window.addEventListener('mousedown', (event) => {
-  if (state.seat !== 'gunner' && state.mode !== 'single') return;
+  if (state.seat !== 'gunner' && !isSoloControlMode()) return;
   if (event.button === 0) {
     localActions.gunner.fire = true;
     gunnerFire.dataset.active = 'true';
@@ -1938,7 +1976,7 @@ window.addEventListener('mouseup', (event) => {
 });
 
 window.addEventListener('contextmenu', (event) => {
-  if (state.seat === 'gunner' || state.mode === 'single') {
+  if (state.seat === 'gunner' || isSoloControlMode()) {
     event.preventDefault();
     return;
   }
@@ -2123,6 +2161,31 @@ muzzleFlash.position.set(0, 0.9, 1.6);
 ship.add(muzzleFlash);
 scene.add(ship);
 
+const allyShips = new Map<string, THREE.Group>();
+const allyShipMaterial = new THREE.MeshStandardMaterial({
+  color: 0x7cffd6,
+  roughness: 0.4,
+  metalness: 0.2,
+  emissive: 0x2fd1b2,
+  emissiveIntensity: 0.4
+});
+function ensureAllyShip(id: string) {
+  let entry = allyShips.get(id);
+  if (entry) return entry;
+  const group = new THREE.Group();
+  const mesh = new THREE.Mesh(new THREE.ConeGeometry(0.45, 1.2, 10), allyShipMaterial);
+  mesh.rotation.x = Math.PI / 2;
+  mesh.position.y = 0.5;
+  group.add(mesh);
+  scene.add(group);
+  allyShips.set(id, group);
+  return group;
+}
+function clearAllyShips() {
+  allyShips.forEach((group) => scene.remove(group));
+  allyShips.clear();
+}
+
 const powerupMaterial = new THREE.MeshStandardMaterial({ color: 0x7cff7a, roughness: 0.2, metalness: 0.2 });
 const powerups = [new THREE.Group(), new THREE.Group()];
 powerups[0].add(new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.6, 0.6), powerupMaterial));
@@ -2203,7 +2266,11 @@ function mapToMini(x: number, y: number) {
   };
 }
 
-function drawMiniMap(shipState: { position: { x: number; y: number }; visionRadius?: number }, enemies: any[]) {
+function drawMiniMap(
+  shipState: { position: { x: number; y: number }; visionRadius?: number },
+  enemies: any[],
+  allies: Array<{ ship: { position: { x: number; y: number } } }> = []
+) {
   if (!miniMapCtx || !miniMapConfig) return;
   const { width, height, scale } = miniMapConfig;
   miniMapCtx.clearRect(0, 0, width, height);
@@ -2253,6 +2320,15 @@ function drawMiniMap(shipState: { position: { x: number; y: number }; visionRadi
   miniMapCtx.beginPath();
   miniMapCtx.arc(shipPoint.x, shipPoint.y, 6, 0, Math.PI * 2);
   miniMapCtx.stroke();
+  if (allies.length) {
+    miniMapCtx.fillStyle = 'rgba(124, 255, 214, 0.85)';
+    allies.forEach(({ ship }) => {
+      const allyPoint = mapToMini(ship.position.x, ship.position.y);
+      miniMapCtx.beginPath();
+      miniMapCtx.arc(allyPoint.x, allyPoint.y, 2.2, 0, Math.PI * 2);
+      miniMapCtx.fill();
+    });
+  }
 
   const visionRadius = shipState.visionRadius ?? 160;
   const visionRadiusSq = visionRadius * visionRadius;
@@ -2531,8 +2607,64 @@ function getSeatInput(seat: SeatType) {
   return inputs.get(seat);
 }
 
+function getRoomMode() {
+  const mode = (state.room?.state as { mode?: GameMode } | null)?.mode;
+  return mode ?? state.mode;
+}
+
+function isSoloControlMode() {
+  const mode = getRoomMode();
+  return mode === 'single' || mode === 'solo';
+}
+
+function getRoomShips() {
+  return (state.room?.state as { ships?: { get?: (key: string) => any; forEach?: (cb: (ship: any, id: string) => void) => void } } | null)?.ships;
+}
+
+function getLocalShipState() {
+  const mode = getRoomMode();
+  if (mode === 'solo') {
+    const ships = getRoomShips();
+    if (!ships?.get || !state.playerId) return null;
+    return ships.get(state.playerId) ?? null;
+  }
+  return (state.room?.state as { ship?: any } | null)?.ship ?? null;
+}
+
+function getRemoteShipStates() {
+  const mode = getRoomMode();
+  if (mode !== 'solo') return [];
+  const ships = getRoomShips();
+  if (!ships?.forEach) return [];
+  const remotes: Array<{ id: string; ship: any }> = [];
+  ships.forEach((ship: any, id: string) => {
+    if (id === state.playerId) return;
+    remotes.push({ id, ship });
+  });
+  return remotes;
+}
+
 function updateSeatPanels() {
   if (!state.room) return;
+  if (getRoomMode() === 'solo') {
+    const players = state.room.state.players;
+    const humanIds: string[] = [];
+    players.forEach((player) => {
+      if (!player.isBot && player.connected) humanIds.push(player.id.slice(0, 4));
+    });
+    const label = humanIds.length ? `SOLO ${humanIds.length}` : 'SOLO';
+    pilotSeatLabel.textContent = label;
+    gunnerSeatLabel.textContent = '-';
+    powerSeatLabel.textContent = '-';
+    systemsSeatLabel.textContent = '-';
+    supportSeatLabel.textContent = '-';
+    crewPilotTag.textContent = label;
+    crewGunnerTag.textContent = '-';
+    crewPowerTag.textContent = '-';
+    crewSystemsTag.textContent = '-';
+    crewSupportTag.textContent = '-';
+    return;
+  }
   const seatToLabel = new Map<SeatType, string>();
   state.room.state.players.forEach((player) => {
     const label = player.isBot ? 'BOT' : player.id.slice(0, 4);
@@ -3074,10 +3206,11 @@ function updateScene(dt: number) {
   applyGamepadInputs();
   resolveLocalSeat();
   updateSeatPanels();
-  const shipState = e2eState?.ship ?? state.room?.state?.ship;
+  const shipState = e2eState?.ship ?? getLocalShipState();
   const enemySource = e2eState?.enemies ?? state.room?.state?.enemies;
   const projectileSource = e2eState?.projectiles ?? state.room?.state?.projectiles;
   const sceneTime = e2eState?.time ?? state.room?.state?.timeSurvived ?? 0;
+  const remoteShips = e2eState ? [] : getRemoteShipStates();
   const pilotInput = getSeatInput('pilot');
   const gunnerInput = getSeatInput('gunner');
   const powerInput = getSeatInput('power');
@@ -3096,7 +3229,7 @@ function updateScene(dt: number) {
   const pilotBoostActive =
     state.seat === 'pilot' ? pilotBoost.dataset.active === 'true' : Boolean(pilotInput?.boost);
   const gunnerAim =
-    state.seat === 'gunner' || state.mode === 'single'
+    state.seat === 'gunner' || isSoloControlMode()
       ? gunnerAxis
       : gunnerInput?.aim
         ? { x: gunnerInput.aim.x, y: gunnerInput.aim.y }
@@ -3524,8 +3657,33 @@ function updateScene(dt: number) {
       shipStatus.textContent = [`HP ${shipState.health.toFixed(0)}`, `SHD ${shield.toFixed(0)}`].join('\n');
     }
 
+    if (getRoomMode() === 'solo') {
+      const activeRemotes = new Set<string>();
+      remoteShips.forEach(({ id, ship }) => {
+        activeRemotes.add(id);
+        const mesh = ensureAllyShip(id);
+        const shipZ = ship.position.z ?? 0;
+        mesh.position.set(ship.position.x, shipZ, ship.position.y);
+        const heading = ship.heading ?? 0;
+        mesh.rotation.y = heading;
+        mesh.rotation.z = 0;
+        mesh.rotation.x = 0;
+      });
+      allyShips.forEach((mesh, id) => {
+        if (activeRemotes.has(id)) return;
+        scene.remove(mesh);
+        allyShips.delete(id);
+      });
+    } else if (allyShips.size) {
+      clearAllyShips();
+    }
+
     if (shipState && enemySource) {
-      drawMiniMap(shipState as { position: { x: number; y: number }; visionRadius?: number }, enemySource);
+      drawMiniMap(
+        shipState as { position: { x: number; y: number }; visionRadius?: number },
+        enemySource,
+        remoteShips
+      );
     }
 
     const active = new Set<string>();

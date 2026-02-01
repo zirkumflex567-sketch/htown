@@ -5,7 +5,7 @@ export class BotSystem {
   constructor(private room: GameRoom) {}
 
   update() {
-    if (this.room.mode === 'single') return;
+    if (this.room.mode !== 'crew') return;
     const ship = this.room.state.ship;
     const enemies = this.room.state.enemies;
     const nearest = enemies[0];

@@ -2,6 +2,9 @@ packages:
   - client
   - server
   - shared
+  - apps/admin-web
+  - apps/admin-api
+  - packages/shared
 
 onlyBuiltDependencies:
   - better-sqlite3

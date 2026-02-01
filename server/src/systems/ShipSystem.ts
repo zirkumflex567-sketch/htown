@@ -1,14 +1,37 @@
-import type { GameRoom } from '../rooms/GameRoom';
+import type { PlayerInput } from '@htown/shared';
 import { clampToCave } from '@htown/shared';
+import type { GameRoom } from '../rooms/GameRoom';
+import type { ShipState } from '../rooms/schema/GameState';
 
 export class ShipSystem {
   constructor(private room: GameRoom) {}
 
   update(delta: number) {
-    const ship = this.room.state.ship;
-    const pilotInput = this.room.inputs.get('pilot');
-    const powerInput = this.room.inputs.get('power');
-    const assistActive = this.room.stabilizerUntil > this.room.simulationTime;
+    this.updateShip(delta, this.room.state.ship, this.room.inputs.get('pilot'), this.room.inputs.get('power'), {
+      assistActive: this.room.stabilizerUntil > this.room.simulationTime,
+      lastPilotMove: this.room.lastPilotMove,
+      lastWallHitAt: this.room.lastWallHit,
+      setLastWallHitAt: (value) => {
+        this.room.lastWallHit = value;
+      },
+      onWallHit: (amount) => this.room.damageShip(amount)
+    });
+  }
+
+  updateShip(
+    delta: number,
+    ship: ShipState,
+    pilotInput: PlayerInput | undefined,
+    powerInput: PlayerInput | undefined,
+    context: {
+      assistActive: boolean;
+      lastPilotMove: { x: number; y: number };
+      lastWallHitAt: number;
+      setLastWallHitAt: (value: number) => void;
+      onWallHit: (amount: number) => void;
+    }
+  ) {
+    const assistActive = context.assistActive;
     const now = this.room.simulationTime / 1000;
 
     const prevTarget = {
@@ -108,8 +131,8 @@ export class ShipSystem {
     let moveY = pilotInput?.move?.y ?? 0;
     const liftInput = Math.max(-1, Math.min(1, pilotInput?.lift ?? 0));
     if (assistActive) {
-      moveX = this.room.lastPilotMove.x * 0.7 + moveX * 0.3;
-      moveY = this.room.lastPilotMove.y * 0.7 + moveY * 0.3;
+      moveX = context.lastPilotMove.x * 0.7 + moveX * 0.3;
+      moveY = context.lastPilotMove.y * 0.7 + moveY * 0.3;
       const maxSteer = 0.6;
       moveX = Math.max(-maxSteer, Math.min(maxSteer, moveX));
     }
@@ -145,9 +168,9 @@ export class ShipSystem {
       ship.velocity.x = clamp.tangentX * tangentDot * 0.65;
       ship.velocity.y = clamp.tangentY * tangentDot * 0.65;
       ship.velocity.z *= 0.35;
-      if (this.room.simulationTime - this.room.lastWallHit > 400) {
-        this.room.damageShip(2);
-        this.room.lastWallHit = this.room.simulationTime;
+      if (this.room.simulationTime - context.lastWallHitAt > 400) {
+        context.onWallHit(2);
+        context.setLastWallHitAt(this.room.simulationTime);
       }
     }
 

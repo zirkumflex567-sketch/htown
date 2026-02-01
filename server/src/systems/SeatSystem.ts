@@ -35,7 +35,7 @@ export class SeatSystem {
   }
 
   tick(deltaMs: number) {
-    if (this.room.mode === 'single') return;
+    if (this.room.mode !== 'crew') return;
     const now = this.room.simulationTime;
     if (now >= this.warningAt && now < this.nextSwapAt) {
       const countdown = Math.ceil((this.nextSwapAt - now) / 1000);

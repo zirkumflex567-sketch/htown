@@ -9,6 +9,13 @@ describe('GameRoom mode selection', () => {
     expect(room.maxClients).toBe(1);
   });
 
+  it('locks solo mode to five clients', () => {
+    const room = new GameRoom();
+    room.onCreate({ mode: 'solo' });
+    expect(room.mode).toBe('solo');
+    expect(room.maxClients).toBe(5);
+  });
+
   it('defaults crew mode to five clients', () => {
     const room = new GameRoom();
     room.onCreate();

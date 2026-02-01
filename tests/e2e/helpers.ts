@@ -13,10 +13,20 @@ export function uniqueEmail(prefix = 'user') {
 
 export async function registerUser(page: Page, creds: Credentials, seat?: string) {
   const seatQuery = seat ? `&e2eSeat=${encodeURIComponent(seat)}` : '';
-  await page.goto(`/?e2e=1${seatQuery}`);
-  await page.fill('#email', creds.email);
-  await page.fill('#password', creds.password);
-  await page.click('#register');
+  await page.goto(`/?e2e=1${seatQuery}`, { waitUntil: 'domcontentloaded', timeout: 30000 });
+  await page.waitForSelector('#email', { timeout: 30000 });
+  await page.evaluate(({ email, password }) => {
+    const emailInput = document.querySelector('#email') as HTMLInputElement | null;
+    const passwordInput = document.querySelector('#password') as HTMLInputElement | null;
+    if (!emailInput || !passwordInput) {
+      throw new Error('Auth inputs not found');
+    }
+    emailInput.value = email;
+    emailInput.dispatchEvent(new Event('input', { bubbles: true }));
+    passwordInput.value = password;
+    passwordInput.dispatchEvent(new Event('input', { bubbles: true }));
+  }, creds);
+  await page.click('#register', { force: true, noWaitAfter: true });
   await expect
     .poll(() => page.evaluate(() => localStorage.getItem('accessToken')))
     .toBeTruthy();

@@ -2,16 +2,25 @@ import { describe, expect, it, vi } from 'vitest';
 import { EnemySystem } from '../systems/EnemySystem';
 import { GameState, EnemyState } from '../rooms/schema/GameState';
 
-const makeRoom = () => ({
-  state: new GameState(),
-  rng: () => 0.5,
-  simulationTime: 0,
-  damageReduction: 1,
-  spawnProjectile: vi.fn(),
-  maybeDropUpgrade: vi.fn(),
-  killCount: 0,
-  bossKillCount: 0
-});
+const makeRoom = () => {
+  const state = new GameState();
+  return {
+    state,
+    rng: () => 0.5,
+    simulationTime: 0,
+    damageReduction: 1,
+    spawnProjectile: vi.fn(),
+    maybeDropUpgrade: vi.fn(),
+    killCount: 0,
+    bossKillCount: 0,
+    getEnemyTargets: () => [{ id: 'crew', ship: state.ship }],
+    getSpawnAnchor: () => ({
+      x: state.ship.position.x,
+      y: state.ship.position.y,
+      z: state.ship.position.z
+    })
+  };
+};
 
 describe('EnemySystem', () => {
   it('spitter fires projectiles when in range', () => {

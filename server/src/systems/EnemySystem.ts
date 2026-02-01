@@ -17,12 +17,30 @@ export class EnemySystem {
       this.spawnTimer = Math.max(2.6 - this.room.state.wave * 0.06, 0.9);
     }
 
-    const ship = this.room.state.ship;
+    const targets = this.room.getEnemyTargets();
+    if (targets.length === 0) return;
     const now = this.room.simulationTime / 1000;
     const slowFieldActive = this.room.state.systems.slowFieldUntil > now;
     const slowFieldRadius = this.room.state.systems.slowFieldRadius;
-    const comboTrailActive = ship.comboTrailUntil > now;
+    const comboTrailShips = targets.filter((target) => target.ship.comboTrailUntil > now);
+    const pickNearestTarget = (enemy: EnemyState) => {
+      let closest = targets[0];
+      let closestDist = Infinity;
+      for (const target of targets) {
+        const dx = target.ship.position.x - enemy.position.x;
+        const dy = target.ship.position.y - enemy.position.y;
+        const dz = target.ship.position.z - enemy.position.z;
+        const dist = dx * dx + dy * dy + dz * dz;
+        if (dist < closestDist) {
+          closestDist = dist;
+          closest = target;
+        }
+      }
+      return closest;
+    };
     for (const enemy of this.room.state.enemies) {
+      const target = pickNearestTarget(enemy);
+      const ship = target.ship;
       const def = enemyDefs.find((entry) => entry.id === enemy.kind) ?? enemyDefs[0];
       const dirX = ship.position.x - enemy.position.x;
       const dirY = ship.position.y - enemy.position.y;
@@ -275,32 +293,35 @@ export class EnemySystem {
 
       if (dist < 16) {
         enemy.health = 0;
-        this.room.damageShip(def.damage * this.room.damageReduction);
+        this.room.damageShip(def.damage * this.room.damageReduction, target.id);
         enemy.velocity.x = -dir.x * maxSpeed;
         enemy.velocity.y = -dir.y * maxSpeed;
         enemy.velocity.z = -dir.z * maxSpeed;
       }
     }
 
-    if (comboTrailActive) {
+    if (comboTrailShips.length) {
       const trailRadius = 22;
       const trailDamage = 12 * delta;
-      for (let i = this.room.state.enemies.length - 1; i >= 0; i -= 1) {
-        const enemy = this.room.state.enemies[i];
-        const dist = Math.hypot(
-          enemy.position.x - ship.position.x,
-          enemy.position.y - ship.position.y,
-          enemy.position.z - ship.position.z
-        );
-        if (dist > trailRadius) continue;
-        enemy.health -= isBossKind(enemy.kind) ? trailDamage * 0.6 : trailDamage;
-        if (enemy.health <= 0) {
-          this.room.killCount += 1;
-          if (isBossKind(enemy.kind)) {
-            this.room.bossKillCount += 1;
+      for (const target of comboTrailShips) {
+        const ship = target.ship;
+        for (let i = this.room.state.enemies.length - 1; i >= 0; i -= 1) {
+          const enemy = this.room.state.enemies[i];
+          const dist = Math.hypot(
+            enemy.position.x - ship.position.x,
+            enemy.position.y - ship.position.y,
+            enemy.position.z - ship.position.z
+          );
+          if (dist > trailRadius) continue;
+          enemy.health -= isBossKind(enemy.kind) ? trailDamage * 0.6 : trailDamage;
+          if (enemy.health <= 0) {
+            this.room.killCount += 1;
+            if (isBossKind(enemy.kind)) {
+              this.room.bossKillCount += 1;
+            }
+            this.room.state.enemies.splice(i, 1);
+            this.room.maybeDropUpgrade(isBossKind(enemy.kind) ? 'boss' : 'enemy');
           }
-          this.room.state.enemies.splice(i, 1);
-          this.room.maybeDropUpgrade(isBossKind(enemy.kind) ? 'boss' : 'enemy');
         }
       }
     }
@@ -319,12 +340,12 @@ export class EnemySystem {
   }
 
   private pickSpawnPosition() {
-    const ship = this.room.state.ship;
+    const anchor = this.room.getSpawnAnchor();
     const angle = randomRange(this.room.rng, 0, Math.PI * 2);
     const distance = randomRange(this.room.rng, 90, 150);
-    const rawX = ship.position.x + Math.cos(angle) * distance;
-    const rawY = ship.position.y + Math.sin(angle) * distance;
-    const rawZ = ship.position.z + randomRange(this.room.rng, -6, 6);
+    const rawX = anchor.x + Math.cos(angle) * distance;
+    const rawY = anchor.y + Math.sin(angle) * distance;
+    const rawZ = anchor.z + randomRange(this.room.rng, -6, 6);
     const clamp = clampToCave(rawX, rawY, rawZ, 1);
     return { x: clamp.x, y: clamp.y, z: clamp.z };
   }

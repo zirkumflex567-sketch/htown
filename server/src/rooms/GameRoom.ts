@@ -1,13 +1,14 @@
 import { Room, Client } from '@colyseus/core';
-import { GameState, PlayerState, SeatInputState, ProjectileState, EnemyState } from './schema/GameState';
+import { GameState, PlayerState, SeatInputState, ProjectileState, EnemyState, ShipState } from './schema/GameState';
 import { combos, mulberry32, statusEffects, weapons as weaponDefs, upgrades as upgradeDefs } from '@htown/shared';
-import type { PlayerInput, SeatType } from '@htown/shared';
+import type { GameMode, PlayerInput, SeatType } from '@htown/shared';
 import { SeatSystem } from '../systems/SeatSystem';
 import { BotSystem } from '../systems/BotSystem';
 import { EnemySystem } from '../systems/EnemySystem';
 import { ShipSystem } from '../systems/ShipSystem';
 import { UpgradeSystem } from '../systems/UpgradeSystem';
 import { updateRunStats } from '../db';
+import { verifyAccessToken } from '../auth';
 
 const statusById = new Map(statusEffects.map((effect) => [effect.id, effect]));
 const comboById = new Map(combos.map((combo) => [combo.id, combo]));
@@ -16,7 +17,7 @@ export class GameRoom extends Room<GameState> {
   state = new GameState();
   inputs = new Map<SeatType, PlayerInput>();
   rng = mulberry32(Math.floor(Math.random() * 999999));
-  mode: 'crew' | 'single' = 'crew';
+  mode: GameMode = 'crew';
   modeLocked = false;
   simulationTime = 0;
   damageReduction = 1;
@@ -53,6 +54,13 @@ export class GameRoom extends Room<GameState> {
   lastSupportLootAt = 0;
   lastUpgradeDropAt = 0;
   achievementFlags = new Set<string>();
+  soloInputs = new Map<string, { pilot?: PlayerInput; gunner?: PlayerInput }>();
+  lastWallHitByShip = new Map<string, number>();
+  lastShipPosById = new Map<string, { x: number; y: number; z: number }>();
+  lastBoostByShip = new Map<string, boolean>();
+  lastHandbrakeByShip = new Map<string, boolean>();
+  gunnerHeatByShip = new Map<string, number>();
+  shipSpawnIndex = 0;
 
   private seatSystem = new SeatSystem(this);
   private botSystem = new BotSystem(this);
@@ -76,56 +84,100 @@ export class GameRoom extends Room<GameState> {
   };
   swapOverdriveSeconds = 0;
 
-  onCreate(options?: { mode?: 'crew' | 'single' }) {
+  onCreate(options?: { mode?: GameMode }) {
     this.setState(this.state);
     if (options?.mode) {
       this.mode = options.mode;
       this.modeLocked = true;
     }
     this.maxClients = this.mode === 'single' ? 1 : 5;
+    this.state.mode = this.mode;
     if (this.listing) {
       this.setMetadata({ mode: this.mode });
     }
-    this.seedSeatInputs();
+    if (this.mode !== 'solo') {
+      this.seedSeatInputs();
+    }
     this.setSimulationInterval((deltaTime) => this.update(deltaTime), 50);
 
     this.onMessage('input', (client, input: PlayerInput) => {
+      const playerId = this.sessionToPlayer.get(client.sessionId);
+      if (!playerId) return;
+      const player = this.state.players.get(playerId);
+      if (!player || !player.connected) return;
+      if (this.mode === 'solo') {
+        if (input.seat !== 'pilot' && input.seat !== 'gunner') return;
+        const entry = this.soloInputs.get(playerId) ?? {};
+        if (input.seat === 'pilot') {
+          entry.pilot = input;
+        } else {
+          entry.gunner = input;
+        }
+        this.soloInputs.set(playerId, entry);
+        return;
+      }
+      if (this.mode !== 'single' && player.seat !== input.seat) return;
       this.inputs.set(input.seat, input);
     });
 
     this.onMessage('upgrade', (client, upgradeId: string) => {
+      const playerId = this.sessionToPlayer.get(client.sessionId);
+      if (!playerId) return;
+      const player = this.state.players.get(playerId);
+      if (!player || !player.connected) return;
       const upgrade = upgradeDefs.find((entry) => entry.id === upgradeId);
       if (!upgrade) return;
-      const playerId = this.sessionToPlayer.get(client.sessionId) ?? client.sessionId;
-      const player = this.state.players.get(playerId);
-      if (upgrade.seat !== 'all' && player?.seat !== upgrade.seat) return;
+      if (this.mode === 'crew' && upgrade.seat !== 'all' && player?.seat !== upgrade.seat) return;
+      const offered = this.state.upgradeChoices.find((entry) => entry.id === upgradeId);
+      if (!offered) return;
       this.applyUpgrade(upgradeId);
       this.state.upgradeChoices.clear();
     });
   }
 
+  async onAuth(client: Client, options?: { accessToken?: string; userId?: string }) {
+    const token = options?.accessToken;
+    if (!token || typeof token !== 'string') {
+      throw new Error('UNAUTHORIZED');
+    }
+    const payload = verifyAccessToken(token);
+    if (options?.userId && options.userId !== payload.sub) {
+      throw new Error('USER_MISMATCH');
+    }
+    return { userId: payload.sub };
+  }
+
   onJoin(
     client: Client,
-    options: { userId?: string; seat?: SeatType; lockSeat?: boolean; mode?: 'crew' | 'single' }
+    options: { userId?: string; seat?: SeatType; lockSeat?: boolean; mode?: GameMode; accessToken?: string }
   ) {
-    const playerId = options.userId ?? client.sessionId;
+    const authedUserId = (client.auth as { userId?: string } | undefined)?.userId;
+    const playerId = authedUserId ?? options.userId ?? client.sessionId;
     if (!this.modeLocked && options.mode) {
       this.mode = options.mode;
       this.modeLocked = true;
       this.maxClients = this.mode === 'single' ? 1 : 5;
+      this.state.mode = this.mode;
+      if (this.listing) {
+        this.setMetadata({ mode: this.mode });
+      }
     }
     let player = this.state.players.get(playerId);
     if (!player) {
       player = new PlayerState();
       player.id = playerId;
-      const preferred = this.mode === 'single' ? 'pilot' : options.seat;
-      player.seat = this.seatSystem.assignSeat(playerId, preferred);
+      if (this.mode === 'crew') {
+        const preferred = options.seat;
+        player.seat = this.seatSystem.assignSeat(playerId, preferred);
+      } else {
+        player.seat = 'pilot';
+      }
       player.isBot = false;
       player.connected = true;
       this.state.players.set(playerId, player);
     } else {
       player.connected = true;
-      if (this.mode === 'single') {
+      if (this.mode !== 'crew') {
         player.seat = 'pilot';
       }
     }
@@ -133,7 +185,11 @@ export class GameRoom extends Room<GameState> {
     if (options.lockSeat) {
       this.lockedPlayers.add(playerId);
     }
-    this.refreshBots();
+    if (this.mode === 'solo') {
+      this.ensureSoloShip(playerId);
+    } else {
+      this.refreshBots();
+    }
   }
 
   onLeave(client: Client, consented: boolean) {
@@ -141,13 +197,25 @@ export class GameRoom extends Room<GameState> {
     const player = this.state.players.get(playerId);
     if (player) {
       player.connected = false;
-      this.refreshBots();
+      if (this.mode === 'crew') {
+        this.refreshBots();
+      }
       this.clock.setTimeout(() => {
         if (player.connected) return;
         this.state.players.delete(playerId);
         this.sessionToPlayer.delete(client.sessionId);
         this.lockedPlayers.delete(playerId);
-        this.refreshBots();
+        if (this.mode === 'solo') {
+          this.state.ships.delete(playerId);
+          this.soloInputs.delete(playerId);
+          this.lastWallHitByShip.delete(playerId);
+          this.lastShipPosById.delete(playerId);
+          this.lastBoostByShip.delete(playerId);
+          this.lastHandbrakeByShip.delete(playerId);
+          this.gunnerHeatByShip.delete(playerId);
+        } else {
+          this.refreshBots();
+        }
       }, 30000);
     }
   }
@@ -157,8 +225,13 @@ export class GameRoom extends Room<GameState> {
     this.simulationTime += deltaTime;
     this.state.timeSurvived += delta;
     const now = this.simulationTime / 1000;
-    const scoreMultiplier = this.state.ship.scoreBoostUntil > now ? 1.35 : 1;
+    const scoreMultiplier = this.getScoreMultiplier(now);
     this.state.score += Math.floor((delta * 2 + this.state.enemies.length * 0.2) * scoreMultiplier);
+
+    if (this.mode === 'solo') {
+      this.updateSolo(deltaTime);
+      return;
+    }
 
     this.seatSystem.tick(deltaTime);
     this.botSystem.update();
@@ -188,6 +261,69 @@ export class GameRoom extends Room<GameState> {
       });
       this.saveScores(seatSnapshot);
       this.state.ship.health = 100;
+      this.state.score = 0;
+      this.state.wave = 1;
+      this.state.timeSurvived = 0;
+      this.state.enemies.clear();
+      this.killCount = 0;
+      this.bossKillCount = 0;
+      this.resetSeatStats();
+      this.lastShipPosById.clear();
+      this.lastBoostByShip.clear();
+      this.lastHandbrakeByShip.clear();
+      for (const [playerId, ship] of this.state.ships.entries()) {
+        this.lastShipPosById.set(playerId, {
+          x: ship.position.x,
+          y: ship.position.y,
+          z: ship.position.z
+        });
+        this.lastBoostByShip.set(playerId, false);
+        this.lastHandbrakeByShip.set(playerId, false);
+      }
+    }
+  }
+
+  private updateSolo(deltaTime: number) {
+    if (this.state.ships.size === 0) return;
+    const delta = deltaTime / 1000;
+
+    for (const [playerId, ship] of this.state.ships.entries()) {
+      const inputs = this.soloInputs.get(playerId);
+      const pilotInput = inputs?.pilot;
+      this.shipSystem.updateShip(delta, ship, pilotInput, undefined, {
+        assistActive: false,
+        lastPilotMove: { x: 0, y: 0 },
+        lastWallHitAt: this.lastWallHitByShip.get(playerId) ?? 0,
+        setLastWallHitAt: (value) => this.lastWallHitByShip.set(playerId, value),
+        onWallHit: (amount) => this.damageShip(amount, playerId)
+      });
+    }
+
+    this.updateSoloStats();
+    this.enemySystem.update(delta);
+    this.updateProjectiles(delta);
+    this.upgradeSystem.update(delta);
+    this.handleSoloCombat();
+    this.checkAchievements();
+
+    for (const [id, heat] of this.gunnerHeatByShip.entries()) {
+      this.gunnerHeatByShip.set(id, Math.max(0, heat - delta * 0.6));
+    }
+
+    if (this.isSoloGameover()) {
+      const seatSnapshot = JSON.parse(JSON.stringify(this.seatStats));
+      this.broadcast('gameover', {
+        score: this.state.score,
+        wave: this.state.wave,
+        time: this.state.timeSurvived,
+        kills: this.killCount,
+        bossKills: this.bossKillCount,
+        seatStats: seatSnapshot
+      });
+      this.saveScores(seatSnapshot);
+      for (const ship of this.state.ships.values()) {
+        ship.health = 100;
+      }
       this.state.score = 0;
       this.state.wave = 1;
       this.state.timeSurvived = 0;
@@ -231,16 +367,18 @@ export class GameRoom extends Room<GameState> {
   }
 
   handleCombat(deltaTime: number) {
-    const gunnerInput = this.inputs.get('gunner');
+    this.handleCombatForShip('crew', this.state.ship, this.inputs.get('gunner'));
+  }
+
+  private handleCombatForShip(shipId: string, ship: ShipState, gunnerInput?: PlayerInput) {
     if (!gunnerInput?.fire && !gunnerInput?.altFire) return;
     const weaponIndex = gunnerInput.weaponIndex ?? 0;
     const selectedWeapon = weaponDefs[Math.min(weaponIndex, weaponDefs.length - 1)];
     const rocketWeapon = weaponDefs.find((entry) => entry.id === 'rocket') ?? selectedWeapon;
     const weapon = gunnerInput.altFire ? rocketWeapon : selectedWeapon;
     const now = this.simulationTime;
-    const key = `gunner-${weapon.id}`;
+    const key = `gunner-${shipId}-${weapon.id}`;
     const last = this.lastFireAt.get(key) ?? 0;
-    const ship = this.state.ship;
     const nowSeconds = now / 1000;
     const overdriveActive = this.state.systems.overdriveUntil > nowSeconds;
     const powerPerfect = ship.powerPerfectUntil > nowSeconds;
@@ -285,8 +423,14 @@ export class GameRoom extends Room<GameState> {
     }
 
     if (weapon.id === 'mg') {
-      if (this.gunnerHeat > 1) return;
-      this.gunnerHeat += 0.08;
+      const heat = shipId === 'crew' ? this.gunnerHeat : this.gunnerHeatByShip.get(shipId) ?? 0;
+      if (heat > 1) return;
+      const nextHeat = heat + 0.08;
+      if (shipId === 'crew') {
+        this.gunnerHeat = nextHeat;
+      } else {
+        this.gunnerHeatByShip.set(shipId, nextHeat);
+      }
       const spread = Math.max(0.04, weapon.spread);
       const angle = aimBase + (this.rng() - 0.5) * spread;
       const speed = 320 + ship.energyWeapons * 60;
@@ -381,11 +525,27 @@ export class GameRoom extends Room<GameState> {
     }
   }
 
+  private handleSoloCombat() {
+    for (const [playerId, ship] of this.state.ships.entries()) {
+      const gunnerInput = this.soloInputs.get(playerId)?.gunner;
+      this.handleCombatForShip(playerId, ship, gunnerInput);
+    }
+  }
+
+  private isSoloGameover() {
+    if (this.state.ships.size === 0) return false;
+    for (const ship of this.state.ships.values()) {
+      if (ship.health > 0) return false;
+    }
+    return true;
+  }
+
   updateProjectiles(delta: number) {
     const now = this.simulationTime / 1000;
-    const scoreBoost = this.state.ship.scoreBoostUntil > now ? 1.2 : 1;
-    const chainActive = this.state.ship.chainUntil > now;
-    const poisonActive = this.state.ship.poisonUntil > now;
+    const ships = this.mode === 'solo' ? Array.from(this.state.ships.values()) : [this.state.ship];
+    const scoreBoost = ships.some((ship) => ship.scoreBoostUntil > now) ? 1.2 : 1;
+    const chainActive = ships.some((ship) => ship.chainUntil > now);
+    const poisonActive = ships.some((ship) => ship.poisonUntil > now);
     const pendingExplosions: Array<{ x: number; y: number; z: number; radius: number; damage: number }> = [];
     const statusMultiplier = (enemy: EnemyState) => {
       let mult = 1;
@@ -540,17 +700,29 @@ export class GameRoom extends Room<GameState> {
           }
         }
       } else {
-        const ship = this.state.ship;
-        const dist = distance(
-          projectile.position.x,
-          projectile.position.y,
-          projectile.position.z,
-          ship.position.x,
-          ship.position.y,
-          ship.position.z
-        );
-        if (dist < 7) {
-          this.damageShip(projectile.damage || 8);
+        const targets =
+          this.mode === 'solo'
+            ? this.getEnemyTargets()
+            : [{ id: 'crew', ship: this.state.ship }];
+        let hitTarget: { id: string; ship: ShipState } | null = null;
+        let hitDist = Infinity;
+        for (const target of targets) {
+          const dist = distance(
+            projectile.position.x,
+            projectile.position.y,
+            projectile.position.z,
+            target.ship.position.x,
+            target.ship.position.y,
+            target.ship.position.z
+          );
+          if (dist < 7 && dist < hitDist) {
+            hitTarget = target;
+            hitDist = dist;
+          }
+        }
+        if (hitTarget) {
+          const shipId = hitTarget.id === 'crew' ? undefined : hitTarget.id;
+          this.damageShip(projectile.damage || 8, shipId);
           projectile.ttl = 0;
         }
       }
@@ -914,6 +1086,37 @@ export class GameRoom extends Room<GameState> {
     }
   }
 
+  private updateSoloStats() {
+    for (const [playerId, ship] of this.state.ships.entries()) {
+      const last = this.lastShipPosById.get(playerId);
+      if (last) {
+        const dx = ship.position.x - last.x;
+        const dy = ship.position.y - last.y;
+        const dz = ship.position.z - last.z;
+        const dist = Math.hypot(dx, dy, dz);
+        if (dist > 0) {
+          this.seatStats.pilot.distance += dist;
+        }
+      }
+      this.lastShipPosById.set(playerId, {
+        x: ship.position.x,
+        y: ship.position.y,
+        z: ship.position.z
+      });
+
+      const pilotInput = this.soloInputs.get(playerId)?.pilot;
+      const boost = Boolean(pilotInput?.boost);
+      const lastBoost = this.lastBoostByShip.get(playerId) ?? false;
+      if (boost && !lastBoost) this.seatStats.pilot.boosts += 1;
+      this.lastBoostByShip.set(playerId, boost);
+
+      const handbrake = Boolean(pilotInput?.handbrake);
+      const lastHandbrake = this.lastHandbrakeByShip.get(playerId) ?? false;
+      if (handbrake && !lastHandbrake) this.seatStats.pilot.handbrakes += 1;
+      this.lastHandbrakeByShip.set(playerId, handbrake);
+    }
+  }
+
   private resetSeatStats() {
     this.seatStats = {
       pilot: { distance: 0, boosts: 0, handbrakes: 0 },
@@ -930,7 +1133,7 @@ export class GameRoom extends Room<GameState> {
   }
 
   refreshBots() {
-    if (this.mode === 'single') {
+    if (this.mode !== 'crew') {
       this.botSeats.clear();
       for (const [id, player] of this.state.players.entries()) {
         if (player.isBot) this.state.players.delete(id);
@@ -968,6 +1171,57 @@ export class GameRoom extends Room<GameState> {
     }
   }
 
+  ensureSoloShip(playerId: string) {
+    if (this.state.ships.has(playerId)) return;
+    const ship = new ShipState();
+    const index = this.shipSpawnIndex % 5;
+    this.shipSpawnIndex += 1;
+    const angle = (index / 5) * Math.PI * 2;
+    const radius = 8;
+    ship.position.x = Math.cos(angle) * radius;
+    ship.position.y = Math.sin(angle) * radius;
+    ship.position.z = 0;
+    this.state.ships.set(playerId, ship);
+    this.lastShipPosById.set(playerId, {
+      x: ship.position.x,
+      y: ship.position.y,
+      z: ship.position.z
+    });
+    this.lastWallHitByShip.set(playerId, 0);
+    this.gunnerHeatByShip.set(playerId, 0);
+  }
+
+  getEnemyTargets() {
+    if (this.mode === 'solo') {
+      const targets: Array<{ id: string; ship: ShipState }> = [];
+      this.state.ships.forEach((ship, id) => targets.push({ id, ship }));
+      return targets;
+    }
+    return [{ id: 'crew', ship: this.state.ship }];
+  }
+
+  getSpawnAnchor() {
+    if (this.mode !== 'solo' || this.state.ships.size === 0) {
+      return {
+        x: this.state.ship.position.x,
+        y: this.state.ship.position.y,
+        z: this.state.ship.position.z
+      };
+    }
+    let sumX = 0;
+    let sumY = 0;
+    let sumZ = 0;
+    let count = 0;
+    this.state.ships.forEach((ship) => {
+      sumX += ship.position.x;
+      sumY += ship.position.y;
+      sumZ += ship.position.z;
+      count += 1;
+    });
+    const div = count || 1;
+    return { x: sumX / div, y: sumY / div, z: sumZ / div };
+  }
+
   private seedSeatInputs() {
     for (const seat of ['pilot', 'gunner', 'power', 'systems', 'support'] as SeatType[]) {
       if (!this.state.seatInputs.has(seat)) {
@@ -979,6 +1233,7 @@ export class GameRoom extends Room<GameState> {
   }
 
   private syncSeatInputs() {
+    if (this.mode === 'solo') return;
     this.seedSeatInputs();
     const assistActive = this.stabilizerUntil > this.simulationTime;
     for (const seat of ['pilot', 'gunner', 'power', 'systems', 'support'] as SeatType[]) {
@@ -1039,14 +1294,25 @@ export class GameRoom extends Room<GameState> {
     }
   }
 
+  private getScoreMultiplier(now: number) {
+    if (this.mode === 'solo') {
+      for (const ship of this.state.ships.values()) {
+        if (ship.scoreBoostUntil > now) return 1.35;
+      }
+      return 1;
+    }
+    return this.state.ship.scoreBoostUntil > now ? 1.35 : 1;
+  }
+
   enableSeatStabilizer(durationMs: number) {
     this.stabilizerUntil = this.simulationTime + durationMs;
   }
 
-  damageShip(amount: number) {
+  damageShip(amount: number, shipId?: string) {
     const now = this.simulationTime / 1000;
     if (this.invulUntil > now) return;
-    const ship = this.state.ship;
+    const ship = shipId ? this.state.ships.get(shipId) : this.state.ship;
+    if (!ship) return;
     if (ship.reflectUntil > now) {
       const reflectRadius = 26;
       for (let i = this.state.enemies.length - 1; i >= 0; i -= 1) {

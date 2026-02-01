@@ -1,276 +1,210 @@
-Game Design Dokument: [Arbeitstitel] – Kooperatives Roguelite
-1. High Concept
-
-Ein düster-atmosphärisches Koop-Roguelite, in dem 1–5 Spieler gemeinsam ein einziges Fahrzeug steuern – und zwar so, dass das Chaos zum Feature wird. Stellt euch vor, ihr und eure Freunde sitzen zusammen in einem stylized Kampffahrzeug irgendwo in einer endlosen Finsternis. Jeder besetzt eine andere Station (Steuerung, Geschütze, Energie, Spezialfähigkeiten, Sensoren), ähnlich wie in Lovers in a Dangerous Spacetime (wo Spieler in einem Neon-Raumschiff verschiedene Stationen bedienen) oder Pulsar: Lost Colony (bis zu 5 Spieler auf einer Brücke, fehlende Rollen von Bots ersetzt). Der Twist: Während eures endlosen Runs tauscht ihr plötzlich und unvorhergesehen die Rollen – mitten im Gefecht! Was unser Spiel besonders macht, ist dieser wilde Rollentausch: Er erzeugt überraschende, lustige und chaotische Situationen, ohne unfair zu sein. Die Spieler erleben ein ständiges Wechselbad aus Kontrolle und Anpassung – jeder muss alles können, niemand kann sich ewig in einer Komfortzone verstecken. In einer finsteren, oppressiven Welt, die nur von euren Effekten und Lichtern erhellt wird, kämpft ihr euch immer weiter, verbessert euer Gefährt im Lauf des Runs absurd hoch, und jagt im Team den Highscore. Emotionales Ziel: Die Spieler sollen brüllen vor Lachen und Adrenalin, wenn mitten im Bosskampf plötzlich der Fahrer zum Schützen wird und der Schütze auf einmal die Energie verteilt. Es ist ein Spiel über spontanes Teamwork im Chaos – ein echtes “Wir gegen die Welt”-Gefühl, das zusammenschweißt.
-
-2. Core Gameplay Loop
-
-Sekundenloop: Ständig passiert etwas: Der Fahrer lenkt das Fahrzeug durch dunkle Arenen und weicht Gefahren aus, während der Schütze Gegnerhorden mit den Geschützen beharkt. Gleichzeitig verteilt der Ingenieur (Energie-Manager) die verfügbare Energie auf Schilde, Waffen und Antrieb, der Spezialist zündet coole Fähigkeiten (etwa einen kurzzeitigen Schutzschild oder einen Geschwindigkeitsschub), und der Sensoroffizier scannt die Finsternis nach Feinden oder Bonus-Objekten. In jeder Sekunde gibt es Mikroentscheidungen: Ausweichen oder draufhalten? Energie in den Laser oder die Motoren? Kommunikation ist Schlüsselelement – ähnlich wie bekannte Coop-Titel setzen wir darauf, dass ihr euch absprecht und reinruft, wer was gerade braucht. Durch visuelles und akustisches Feedback (Warnleuchten, Trefferindikatoren, Audio-Hinweise) spürt jeder Spieler die Auswirkungen seiner Handlungen unmittelbar.
-
-Minutenloop: Im Verlauf einiger Minuten formt sich ein intensives Action-Ballet. Wellen von Gegnern greifen an – kleine “Trash”-Gegner, die schnell besiegt werden müssen, bis hin zu Elitetruppen, die koordinierte Reaktionen fordern. Die Spieler sammeln währenddessen Run-Upgrades ein (z.B. nach jeder Welle oder aus zufälligen Truhen), beraten kurz, welche Station welches Upgrade bekommt, und passen ihre Strategie an. Etwa alle 2–3 Minuten steht ein besonderes Ereignis an: Vielleicht taucht ein Mini-Boss oder ein Elite-Gegner auf, der kurzzeitig alle Rollen fordert, oder ein Umgebungs-Event tritt ein (z.B. ein Bereich völliger Dunkelheit, wo nur die Sensorsysteme weiterhelfen). Dann – wenn ihr euch gerade eingespielt habt – schlägt unser Twist zu: Der Rollentausch. Unvermittelt wechseln die Spieler ihre Stationen (Details siehe Abschnitt Rollentausch). Es entsteht für ein paar Sekunden totale Verwirrung und Gelächter, bis sich jeder neu orientiert hat. Die Minuten-Schleife besteht also aus: Gegnerwelle bekämpfen → Loot/Upgrade einsammeln → möglicherweise Rollen tauschen → nächste Welle/Boss. Zwischen größeren Gegnerwellen kann es ganz kurze Verschnaufpausen geben, um Upgrades zu verteilen oder durchzuatmen – aber nie zu lange, die Spannung soll hoch bleiben.
-
-Run-Loop: Das gesamte Spiel ist als Endlos-Run designt. Ihr startet relativ schwach in der ersten Arena und werdet mit jeder überstandenen Welle stärker (durch temporäre Upgrades). Die Gegner werden aber auch immer zahlreicher und mächtiger. Alle 5–10 Minuten trefft ihr auf einen Bosskampf als Höhepunkt – hier müsst ihr besonders koordiniert sein, um zu überleben. Schafft ihr den Boss, geht es in den nächsten Abschnitt (optisch vielleicht ein neues Biom oder Areal, prozedural generiert) mit steigendem Schwierigkeitsgrad. Die Frage lautet immer: Wie weit kommt ihr, bevor ihr unweigerlich scheitert? Ein Run endet, wenn das Fahrzeug zerstört wird (alle Lebenspunkte verloren) – was früher oder später passiert, da der Schwierigkeitsgrad endlos skaliert. Es gibt keine persistente Kampagnen-Progression im klassischen Sinne; stattdessen ist jeder Run autark. Was bleibt, ist euer Score: Nach dem Game Over sehr ihr eure Punkte (z.B. basierend auf besiegten Gegnern, überlebter Zeit, Bossen, etc.) und rangiert euch damit in der Online-Rangliste ein. Diese Highscore-Jagd ist die Langzeitmotivation. Jeder Run schult außerdem eure Fertigkeiten – mit jedem Versuch werdet ihr besser im gemeinsamen Chaos-Navigieren. Der Core-Loop “Spielen → Sterben → Wieder versuchen” soll so motivierend sein wie bei klassischen Arcade-Roguelikes, nur eben kooperativ.
-
-3. Spielerrollen und Stationen
-
-In unserem Fahrzeug gibt es fünf zentrale Stationen/Rollen, die idealerweise von je einem Spieler besetzt werden (fehlende Spieler werden durch KI-Bots ersetzt, die solide Grundfunktionen übernehmen). Jede Rolle ist einzigartig in Gameplay, Steuerung und Perspektive – und der periodische Tausch dieser Rollen ist der Kern unseres Spiels. Hier alle Rollen im Detail:
-
-Pilot / Fahrer (Steuerung): Diese Rolle steuert das Fahrzeug durch die Arena. Der Pilot sieht die Welt meist aus einer Third-Person-Perspektive hinter dem Fahrzeug oder einer leicht erhöhten Verfolgerkamera, um genug Überblick zu haben. (Wir nutzen dafür z.B. eine Cinemachine Free Look Cam für flüssiges Orbiting um das Fahrzeug.) Aufgabe und Mechanik: Hindernissen ausweichen, Deckung nutzen, Gegnerüberrennungen verhindern und das Team taktisch gut positionieren. Die Steuerung erfolgt direkt über Gamepad-Stick oder WASD (für Richtungsänderung, Beschleunigen/Bremsen) – es fühlt sich an wie einen schweren, aber agilen Panzer/Truck zu fahren. Der Pilot hat evtl. auch eine Boost-Funktion (Kurzzeit-Turbo mit Abklingzeit) als aktives Manöver. Skill-Anforderung: Hoch – gutes Reaktionsvermögen, räumliche Wahrnehmung und Streckenplanung. UI & Sicht: Der Pilot sieht ggf. eine Fahrtrichtungshilfe (ein kleiner Marker für Waypoints oder drohende Kollisionen) und einen Geschwindigkeits-/Schadensanzeiger fürs Fahrzeug. Gefühl beim Rollentausch: Wenn ein Pilot unvermittelt zur anderen Rolle wechselt, ist das besonders chaotisch – plötzlich “fährt das Fahrzeug alleine” (in Wahrheit aktivieren wir kurz einen Autopiloten, der das aktuelle Manöver abschließt, um Fairness zu wahren). Als Ex-Pilot muss man abrupt vom ganzheitlichen Navigationsdenken auf z.B. reines Schießen oder Panel-Bedienung umstellen, was für Hektik sorgt. Umgekehrt wird ein Spieler, der in die Pilotrolle geworfen wird, sofort von einem Adrenalinstoß getroffen: “Oh Gott, ich lenke jetzt!” – aber dank sanfter Hilfen (z.B. temporärer Stabilisierung des Fahrzeugs) lernt man schnell, dass man es meistern kann.
-
-Gunner / Schütze (Waffensysteme): Der Schütze kontrolliert die primären Bewaffnungen des Fahrzeugs. Je nach Fahrzeugdesign gibt es etwa ein drehbares Geschütz (Turret) auf dem Dach und eventuell Zweitwaffen (z.B. eine frontale Stoßstange für Nahkampf oder Heckminen). Aufgabe: Maximaler Schaden auf Gegner, Priorisierung von Zielen (z.B. zuerst die gefährlichen Gegner ausschalten) und Timing von Nachladungen. Steuerung: Visieren und Feuern – am PC per Mausziel oder Gamepad-Rechter Stick, Abzug auf Trigger. Das Fadenkreuz wird in der Spielwelt angezeigt; der Schütze kann in Third-Person auf dasselbe Kamerabild wie der Pilot schießen oder in einen Zielmodus wechseln (z.B. über Kimme/Korn oder ein Zoom auf den Geschützturm). Unterschiedliche Waffen erfordern unterschiedliche Ansätze (eine MG will Dauerfeuer, eine Kanone gutes Timing). Skill-Anforderung: Mittel – Zielgenauigkeit und Situationsbewusstsein (nicht blind alles ballern, sondern z.B. Munition managen). UI & Sicht: Der Schütze hat ein HUD mit Munitions-/Hitze-Anzeige der Waffen, evtl. Markierungen auf wichtigen Zielen (hier hilft die Sensoren-Rolle mit, siehe unten). Gefühl beim Tausch: Als Schütze ist man oft “im Tunnel” – fokussiert auf das Fadenkreuz. Wenn man plötzlich rausgerissen und z.B. in die Rolle des Piloten gesetzt wird, sieht man schlagartig das größere Bild: “Oh, wir steuern auf eine Wand zu!” – das sorgt für Panik, aber auch Komik. Ein neuer Spieler, der zur Schützenrolle wechselt, muss in Sekundenschnelle ein Gefühl für das gerade ausgerüstete Waffensystem bekommen. Hier hilft, dass wir die Waffen relativ intuitiv gestalten (visuelles Feedback, einfache Controls). Der Rollentausch hier ist spaßig-chaotisch, aber fair, weil z.B. Geschütze bei einem Wechsel kurz auto-weiterfeuern (oder ihre Ausrichtung halten), damit keine Millisekunde Ausfall entsteht, während der neue Schütze sich orientiert.
-
-Engineer / Energietechniker (Energie & Reparaturen): Diese Rolle verwaltet die Energie- und Systemssteuerung des Fahrzeugs. Man kann es sich wie den Maschinenraum in Star Trek vorstellen: begrenzte Energie, die dynamisch auf Systeme verteilt wird. Aufgabe: Den optimalen Energiefluss sicherstellen – z.B. auf Knopfdruck Energie von den Waffen zu den Schilden umverteilen, wenn Verteidigung nötig ist, oder umgekehrt alles auf die Geschütze, wenn man volles Feuer geben will. Der Ingenieur überwacht außerdem den Fahrzeugstatus: Hüllenintegrität, Schildaufladung, eventuell Überhitzung von Systemen. Möglicherweise kann diese Rolle auch Notfallreparaturen ausführen (z.B. ein Minigame, um im Kampf etwas Hüllenpunkte zurückzugewinnen, mit Abklingzeit). Steuerung: Das Gameplay hier ist eher panel-basiert: Der Spieler sieht ein spezielles UI-Panel – z.B. eine Aufteilung der Gesamtenergie mit Schiebereglern oder Buttons für Voreinstellungen (“Volle Fahrt”, “Volles Schild”, “Ausgeglichen”). Er kann mit Tastatur oder Gamepad durch dieses Panel navigieren (ähnlich einem strategischen Interface). Es ist ein bewusster Kontrast zu den actionreichen Rollen: Hier passiert das Hauptgeschehen im UI und im Kopf. Skill-Anforderung: Hoch – erfordert strategisches Denken, Timing und gutes Verständnis der Spielmechanik. Ein erfahrener Ingenieur optimiert die Team-Performance enorm (z.B. kurz bevor der Boss seine fette Laser-Attacke feuert, hat der Ingenieur schon die Schilde auf Maximum gedreht). UI & Sicht: Hauptsächlich ein detailliertes Energiemanagement-Interface (ggf. im Diegese ein “Konsolenblick” im Cockpit). Dennoch hat der Ingenieur auch einen kleinen Sichtbereich auf die Außenwelt, um z.B. visuell zu merken, wann viele Gegner kommen (man kann das Panel teils transparent halten über dem Spielbild oder auf Knopfdruck toggeln). Zudem Anzeigen für Systemzustände (Temperaturen, Schadenslevels). Gefühl beim Tausch: Diese Rolle zu tauschen ist besonders interessant: Der Ingenieur wechselt vielleicht in eine actionlastige Rolle und muss plötzlich schießen statt slider schieben – das kann zu einer Überforderung oder witzigem Kontrast führen (“Ich wollte doch gerade den Reaktor kühlen, jetzt fliege ich die Kiste!”). Umgekehrt kann jemand unvermittelt den komplexen Energie-Posten übernehmen – wir designen das Panel daher so, dass auch auf den ersten Blick Grundaktionen klar sind (z.B. Presets “Attack/Defense”), damit ein Neuling nicht sofort das Team sabotiert. Im Chaos des Gefechts kann es sogar erleichternd sein, mal die Denk-Arbeit abzugeben und stattdessen “einfach nur zu fahren oder zu schießen” – und für den anderen entsprechend spannend, plötzlich das Management zu übernehmen.
-
-Specialist / Fähigkeits-Offizier (Module & Specials): Diese Rolle bedient alle Sonderfähigkeiten und taktischen Module des Fahrzeugs. Darunter fallen z.B. Aktivfähigkeiten (mit Cooldown) wie: ein temporärer Schild-Burst, ein EMP-Stoß, ein Heilungsfeld, ein Tarntarn-Modus, ein kurzer Zeitlupeneffekt, Drohnen losschicken etc. Diese Fähigkeiten sind im Run freischalt- und upgradebar, was dem Specialist viel Varianz gibt. Aufgabe: Zur richtigen Zeit die richtigen Specials zünden und das Team taktisch unterstützen. Beispielsweise könnte der Specialist einen „Sensor-Scan-Ping“ auslösen, der kurzzeitig alle unsichtbaren Gegner aufdeckt (sehr nützlich in der Dunkelheit), oder einen „Overdrive“, der für 5 Sekunden allen anderen Stationen einen Buff gibt (Waffen feuern schneller, Motor boostet, Schilde halten mehr aus). Steuerung: Kontextabhängig – der Specialist hat typischerweise mehrere Buttons (Tasten 1-4 oder Gamepadfacebuttons), jeder belegt mit einer Fähigkeit. Viele Fähigkeiten sind AoE oder Team-basiert, sodass Zielen weniger wichtig ist (einige könnten aber gerichtet sein, z.B. ein nach vorne gerichteter Flammenstoß, dann zielt man ähnlich wie der Schütze). Skill-Anforderung: Mittel – man muss die Abklingzeiten und Synergien im Blick haben. Diese Rolle belohnt Game Knowledge: Ein erfahrener Specialist kennt alle Module und weiß genau, wann er was einsetzt (z.B. den EMP genau dann, wenn Gegner ihre Schilde hochfahren). UI & Sicht: Der Specialist sieht wie die anderen die Hauptaction-Kamera, hat aber ein spezielles HUD-Element mit allen Fähigkeitssymbolen und deren Cooldowns/Ladungen. Ggf. werden auch Effektradius oder Zielindikatoren angezeigt, wenn eine Fähigkeit gezielt werden muss. Gefühl beim Tausch: Diese Rolle zu wechseln, kann chaotisch sein, weil der Specialist oft den Überblick behält, wann was einsetzbar ist. Wenn er plötzlich Fahrer wird, gehen evtl. vorbereitete Fähigkeiten “vergessen” (die neue Person in Specialist-Position weiß z.B. nicht, dass der Schild-Burst jetzt bereit wäre). Das erzeugt Situationskomik und fordert flexible Absprachen (“Oh Mist, du hast jetzt die EMP-Kontrolle, nutz sie JETZT!”). Jemand, der neu in die Specialist-Rolle kommt, sieht erstmal viele bunte Icons – aber wir gestalten sie intuitiv (Symbole, Farbcode für „bereit“ oder „lädt...“), sodass er im Zweifel einfach mal drückt und coole Effekte auslöst. Immerhin sind die Specials so designt, dass sie dem Team nützen und nicht schaden – Trial&Error eines Neulings ist also verkraftbar und sogar lustig.
-
-Analyst / Sensor-Offizier (Sensorik & Aufklärung): Diese vielleicht untypische Rolle sorgt dafür, dass euer Team in der erdrückenden Dunkelheit nicht blind ist. Der Sensor-Offizier überwacht ein Radarsystem, scannt nach Feinden, markiert Gefahren und koordiniert Informationen. Aufgabe: Fog-of-War aufdecken, versteckte oder weit entfernte Gegner identifizieren, Ziele markieren (damit der Schütze z.B. durch Rauch hindurch weiß, wo er hinschießen soll) und eventuell Bedrohungsalarme geben (“Achtung, von hinten kommt was!”). In unserer finsteren Spielwelt hat der Sensor-Offizier quasi eine ergänzende Wahrnehmung: Er sieht auf seinem Bildschirm Dinge, die andere nicht sehen, und muss diese Info ans Team weitergeben (sofern nicht automatisch markiert). Steuerung: Hauptsächlich über eine Tactical Map / Radar UI. Der Analyst sieht eine schematische Draufsicht oder 3D-Sensoransicht des Umfelds. Dort erscheinen blips für Feinde, vielleicht in unterschiedlichen Farben für Gegnertypen. Mit Maus oder Stick kann er einen Cursor bewegen, um z.B. einen Scan-Ping an einer Stelle zu aktivieren (“Scan hier!”), oder er kann per Knopfdruck Ziele anvisieren und allen markieren (dann sehen z.B. die anderen über Feinden ein Symbol). Diese Mechanik ähnelt einem RTS oder einem UAV-Interface – relativ ruhig, aber entscheidend. Zusätzlich hat der Sensor-Offizier evtl. Drohnen oder Sonden, die er ausschicken kann, um im Nebel Gebiete auszuleuchten. Skill-Anforderung: Mittel – gute Beobachtungsgabe und Teamkommunikation. Diese Rolle verlangt nicht blitzartige Reflexe, sondern kühlen Kopf: Den Überblick behalten, Muster erkennen (“Viele kleine Signale nähern sich von Osten – das muss ein Schwarm Gegner sein!”) und entsprechend warnen. UI & Sicht: Der Sensor-Offizier verbringt viel Zeit im Sensorsicht-Overlay, das wie ein grünes Nachtsicht-Radar wirken könnte. Er kann aber auch jederzeit zur Standard-Kamera schauen, um das tatsächliche Geschehen zu sehen (ggf. toggelt er Ansichten). Wir planen das UI so, dass identifizierte Gegner automatisch einen Overlay-Umriss im Spielbild bekommen, sodass alle profitieren, wenn der Analyst gut arbeitet. Gefühl beim Tausch: Beim Wechsel dieser Rolle gibt es klasse “Aha”-Momente: Wer bisher “blind” nur aus der Fahrer- oder Schützenperspektive agierte, kriegt als neuer Sensor-Offizier plötzlich den Rundum-Radar vor sich – “Oh wow, so viele rote Punkte überall!” Das erhöht das Verständnis fürs große Bild. Umgekehrt muss jemand, der vom Sensorenposten auf einmal z.B. zum Gunner wird, schnell von der abstrakten Übersicht in die direkte Action umschalten. Wenn keiner gerade am Sensor sitzt (für die paar Sekunden des Wechsels), läuft das System auf Autopilot weiter – es zeigt zuletzt bekannte Daten, aber aktualisiert nicht. Das motiviert, zügig wieder aktiv die Sensoren zu bedienen. Insgesamt sorgt die Sensorrolle dafür, dass die Dunkelheit der Spielwelt ein spielerisches Element wird – der ständige Wechsel, wer gerade für Sicht und Info zuständig ist, bringt Dynamik (“Wer hat den Scanner? Ach, jetzt ich! Moment, ich ping mal…!”).
-
-Balance & Wechselwirkung: Alle Rollen sind so gestaltet, dass sie ineinandergreifen. Beispiel: Der Sensor markiert einen versteckten Feind -> der Gunner sieht die Markierung und schießt -> der Engineer merkt, dass Waffenenergie sinkt, also verteilt er mehr Energie auf Waffen -> der Pilot hält in der Zwischenzeit den Gegner im Visierfeld -> der Specialist zündet in dem Moment einen Schadensboost. Jeder leistet seinen Teil. Doch durch den Rollentausch (siehe nächster Abschnitt) muss jeder Spieler grundsätzlich lernen, jede Rolle zumindest grundlegend zu bedienen. Das Spiel fördert Generalisten: am Ende sollen sich alle fünf Posten fast wie unterschiedliche “Klassen” anfühlen, die man im Wechsel spielt. Jede Rolle hat eine andere Lernkurve (Skillcap): z.B. Pilot und Engineer sind schwer zu meistern, Gunner und Specialist mittel, Sensor eher leicht zu bedienen – aber im Eifer sind alle gefordert. Wichtig ist uns, dass keine Rolle langweilig ist: selbst der Sensoroffizier hat spannende Aufgaben und ist integraler Bestandteil. Sollte man mal mit weniger als 5 Spielern spielen, übernehmen unsere KI-Bots die übrigen Stationen relativ kompetent (ähnlich wie KI-Crewmitglieder in Pulsar: Lost Colony, die man optional kommandieren kann). Die KI fährt z.B. den Wagen halbwegs vernünftig oder schießt automatisch – aber natürlich nie so optimal wie ein Mensch, so dass mehr echte Spieler immer einen Vorteil bringen. Dennoch sind unsere Bots dazu da, das Spiel in jedem Teamgrößenfall spielbar zu machen.
-
-4. Rollentausch-System
-
-Der Rollentausch ist das Alleinstellungsmerkmal unseres Spiels – er soll überraschend, chaotisch und lustig sein, aber nicht frustrierend oder unfair. Wir designen das System mit viel Feingefühl, damit die Spieler das Chaos genießen können, ohne durch fiese Timing-Peche benachteiligt zu werden.
-
-Trigger und Timing: Der Rollenwechsel passiert zufällig während des Runs, allerdings in einem kontrollierten Rahmen. Es gibt keinen festen Timer (“alle 60 Sekunden”), damit es wirklich überraschend bleibt. Stattdessen arbeiten wir mit einer Art “Chaossensor” im Spiel: Die Wahrscheinlichkeit für einen Rollentausch steigt z.B. mit der Zeit oder bestimmten Events, aber der genaue Moment ist unvorhersehbar. Wir sorgen jedoch dafür, dass in extrem ungünstigen Situationen kein Tausch erfolgt – z.B. nicht genau in der Millisekunde, in der der Pilot millimetergenau einem Abgrund ausweichen muss oder der Schütze den letzten Schuss auf den Boss anbringt. Dazu checkt das System gewisse Bedingungen (z.B. “Fahrzeug in der Luft?” oder “Schild kritisch und Großangriff <2s entfernt?”) und verschiebt den Tausch gegebenenfalls um ein paar Sekunden. In der Regel zünden wir den Rollentausch gern zwischen Gegnerwellen oder in kurzen Lulls: z.B. direkt nach einer Welle, bevor die nächste startet – das entspannt die Fairness, aber oft sind solche kurzen Pausen ohnehin hektisch (Loot sammeln, neu formieren), was den Tausch weiter anheizt. Aber auch mitten im Kampf kann es passieren, wenn das Chaos-Level passt – besonders witzig ist es ja genau dann. Die Kunst liegt darin, dass es sich willkürlich anfühlt, aber eigentlich das Spiel weiß, wann es den Spielern noch zumutbar ist. Ein gewisses Minimumintervall gibt es auch: sagen wir, maximal ein Tausch alle 90 Sekunden, damit es nicht inflationär wird. Dafür ist auch die Anzahl der Tauschereignisse nach oben offen – je länger ihr überlebt, desto öfter werdet ihr durchgebeutelt.
-
-Ablauf des Tauschs: Wenn ein Rollentausch getriggert wird, bekommt das Team ein kurzes, klares Signal. Geplant ist ein verrückter Audio-Visuelleffekt: Ein schriller Alarmton/humorvolles Signalhorn ertönt und im UI erscheint ein auffälliges Symbol (z.B. ein drehender Würfel oder vertauschte Pfeile). Vielleicht blinkt alles in einer bestimmten Farbe, die jeder sofort mit “Swap!” assoziiert. Wir vermeiden jedoch, vorab schon anzuzeigen, wer wohin wechselt – es soll ja der Überraschungsmoment bleiben („Oh nein, was kommt jetzt?!“). In dem Moment des Wechsels selbst wird das Bild vielleicht für 0,5 Sekunden in Slow-Motion versetzt oder es gibt einen ultraschnellen Fade-out/Fade-in, in dem die Perspektiven wechseln. Technisch heißt das: Spieler A gibt Kontrolle von Station X ab und erhält Kontrolle von Station Y, etc., einmal durchgemischt. Die genaue Logik kann zufällig sein oder reihum rotierend – hier tendieren wir zu echtem Zufall, damit nicht vorhersehbar ist, wer als nächstes z.B. Pilot wird. Möglich ist auch, dass wir einen Pseudo-Zufall nutzen: z.B. kein Spieler erhält zweimal hintereinander dieselbe Rolle, um Abwechslung zu garantieren. Sobald der Wechsel vollzogen ist, fährt das Spiel in Normalgeschwindigkeit fort und jeder sieht plötzlich das UI und die Perspektive seiner neuen Rolle.
-
-Feedback und Fairnessmechanik: Unmittelbar nach einem Tausch gewähren wir eine ganz kurze Gnadenfrist: z.B. 2 Sekunden Unverwundbarkeit für das Fahrzeug (damit nicht ein Feind genau in dem Moment alles zerstört, wo keiner klarkommt) und eventuell verlangsamen wir die Gegner in diesen 2 Sekunden minimal (damit man Zeit hat, sich neu zu orientieren). Diese Gnadenfrist wird aber nicht explizit als solche kommuniziert – das Spiel “fühlt” sich nur etwas kulanter an, ohne den Chaos-Eindruck zu schmälern. Außerdem greifen einige automatische Stabilisatoren: Der Pilot-Autopilot, den wir schon erwähnt haben – verlässt ein Spieler den Fahrersitz, hält das Fahrzeug für einen Moment Kurs und Geschwindigkeit stabil (oder bremst kontrolliert ab, wenn keine Eingabe kommt), bis der neue Pilot eingreift. Gleiches bei Waffen: Turrets behalten zuletzt angelegte Ziele 1–2 Sekunden per Tracking bei, sodass ein neuer Gunner sofort sieht, wo Gefahr ist (er kann natürlich übernehmen und umlenken). Die Energie verteilt sich im Zweifel kurz automatisch ausbalanciert (damit nichts völlig unbetreut ist). Durch diese Hilfen ist der Wechsel zwar hektisch, aber es entsteht kein totaler Kontrollverlust – eher eine Übergangsphase, in der das Spiel mit einem Augenzwinkern sagt: “Keine Sorge, ich halte dir kurz das Lenkrad, find du mal raus, wo du jetzt sitzt.” Wichtig ist: diese Hilfen greifen nur unmittelbar beim Wechsel und schalten sich ab, sobald der neue Spieler eine Eingabe macht, sodass niemand das Gefühl hat, das Spiel nehme ihm etwas ab.
-
-Signalisierung intern: Damit die Spieler schnell kapieren, wer jetzt welche Rolle hat, gibt es deutlich farbkodierte Anzeigen. Jede Rolle hat eine Farbe/Icon (z.B. Pilot = blau/Lenkrad-Symbol, Gunner = rot/Fadenkreuz-Symbol etc.). Nach dem Swap sieht jeder kurz ein Pop-up “Du bist jetzt: [Icon] PILOT” oder ähnlich. Auch an den Stationskonsolen im Spiel (falls visuell dargestellt) könnte man die Spieler-Avatare angeheftet sehen, aber da wir kein lokales Splitscreen haben, passiert das eher via UI. Audio könnte auch genutzt werden: Eine computrige Stimme, die sagt “Role Reassigned!” oder lustiger: Jede Station hat einen Spitznamen und es wird durchsagt “Chaostausch! Alice ist jetzt am Steuer, Bob an den Waffen!”, wobei wir natürlich Platzhalternamen durch generische “Player x” oder Nicknamen ersetzen würden. Weil es online ist, würden wir uns aufs UI verlassen, aber vielleicht optional mit Voice Chat Integration einen Tausch im Chat ausgeben (“System: Spieler1 -> Pilot, Spieler2 -> Gunner, ...”).
-
-Chaos-Balancing: Wir möchten, dass der Rollentausch nicht als Bestrafung, sondern als Feature zum Amüsieren gesehen wird. Daher belohnen wir indirekt flexibles Spielen. Zum Beispiel könnten wir einen Score-Multiplikator an die Swaps knüpfen: Nach jedem Tausch gibt es ein paar Sekunden einen Punktemultiplikator für Kills, um die rasante Phase danach belohnender zu machen. Das spornt an, direkt Gas zu geben in neuer Rolle. Außerdem könnten bestimmte Achievements oder Punkte fürs schnelle Übernehmen vergeben werden (“Kein Schaden 10 Sekunden nach Swap = Bonus”). Sollte das Team den Wechsel sehr geschickt meistern (keine Fehler trotz Wechsel), steigt vielleicht im Hintergrund der “Chaosfaktor” geringer – was bedeutet, dass der nächste Swap etwas länger auf sich warten lässt, quasi als Belohnung, dass man es so gut gemanagt hat. Umgekehrt, wenn alles drunter und drüber geht, kann es witzig sein, gleich nochmal durchzutauschen, aber wir werden das vorsichtig einsetzen, damit es nicht frustet.
-
-Insgesamt soll der Rollentausch das Herzstück der Spielerfahrungen sein: Er erzeugt Anekdoten (“Weißt du noch, wie ich plötzlich fahren musste und fast den Boss plattgefahren hätte?”), fordert die Kommunikation und bringt frischen Wind, sobald Routine aufzukommen droht. Es ist Surprise-Coop – man lacht gemeinsam über das System und mit dem System. Wichtig: Wir erlauben den Spielern nicht, den Tausch aktiv auszulösen (kein Button “swap now”), denn das würde den Spaß nehmen. Es ist immer das Spiel, das scherzhaft den Hut durch die Runde wirft. Unsere Inspiration zieht hier z.B. etwas von Partyspielen oder Chaossimulationen – man denke an das Prinzip von Spaceteam (Mobile-Coop, wo plötzlich absurde Anweisungen kommen) oder Overcooked, wo auch hin und wieder plötzlich die Küche sich umbaut. Wir wollen genau dieses „Oh nein, jetzt passiert’s wieder!“-Feeling, gefolgt von hektischem Neuordnen – und wenn das Team es hinbekommt, ist die Befriedigung umso größer.
-
-5. Upgradesystem
-
-Unser Roguelite setzt voll auf Run-basiertes Wachstum. Das heißt, während eines einzelnen Durchlaufs werdet ihr euer Fahrzeug immer weiter verbessern, aber nichts davon ist persistent ins nächste Spiel – jeder Run beginnt frisch. Damit das motiviert, gestalten wir die Upgrades überzeichnet und synergetisch, sodass ihr in einem Lauf zu wahren Monstern aufsteigen könnt.
-
-Upgrade-Fundamente: Upgrades beziehen sich immer auf die Stationen/Rollen, nicht auf den individuellen Spieler. Konkret: Wenn ihr z.B. ein Waffen-Upgrade findet (“+20% Feuerrate”), dann wird es auf die Waffenstation (Gunner-Rolle) angewendet – egal wer diese Station künftig bedient. Dadurch entsteht eine spannende Dynamik: Ihr stärkt zwar euer Team, aber möglicherweise profitiert ein anderer Spieler später direkt davon, wenn die Rollen wechseln. Das fördert kooperatives Denken – man freut sich, auch wenn ein anderer gerade den Nutzen hat, denn beim nächsten Swap kann es der eigene Vorteil sein.
-
-Upgrade-Typen und Beispiele: Es gibt verschiedene Kategorien von Verbesserungen:
-
-Offensiv: Erhöht Waffenschaden, Feuerrate, Projektilgeschwindigkeit, kritische Trefferchance etc. für die Waffenstation. Beispiel: “Overclocked Turrets – +15% Schaden und jede 5. Kugel explodiert” (dies würde dem Gunner massive Power geben, egal wer Gunner ist).
-
-Defensiv: Erhöht Schildstärke, Hüllenpanzerung, Regenerationsrate etc., meist relevant für den Engineer/Energie-Posten. Beispiel: “Reaktive Panzerung – bei <20% Leben bekommt das Fahrzeug 5 Sekunden Unverwundbarkeit (Cooldown 60s)”. Solche Upgrades helfen dem ganzen Team zu überleben.
-
-Mobilität: Boost für den Piloten – höhere Maxgeschwindigkeit, besseres Handling, kürzere Boost-Abklingzeit. Beispiel: “Verbesserte Servolenkung – +25% Wendegeschwindigkeit”. Das macht das Fahren spritziger, worüber sich jeder freut, der mal Pilot ist.
-
-Utility/Sensorik: Upgrades, die den Specialist oder Sensor verbessern – z.B. kürzere Cooldowns, größere Wirkungsradien, mehr Infos. Beispiel: “Hochleistungssensor – Radarreichweite verdoppelt und Feinde bleiben 2s länger markiert”. Oder “Moduleffizienz – Spezialfähigkeiten dauern 20% länger”.
-
-Synergien/Besondere: Hier wird es interessant – Upgrades, die das Zusammenspiel betreffen. Beispiel: “Energielink – Überschüssige Waffenenergie erhöht automatisch Schildregeneration” – das koppelt Engineer und Gunner. Oder “Markiertes Ziel: Markierte Gegner erleiden +30% Schaden” – Kopplung Sensor und Gunner. Solche Synergien sind wahnsinnig mächtig, wenn die Teammitglieder es ausnutzen.
-
-Absurd skalierend: Wir ermutigen irrwitzige Kombinationen. In einem guten Run stapeln sich vielleicht ein Dutzend Upgrades pro Station – der Gunner ballert irgendwann so schnell, dass der Bildschirm vor Mündungsfeuer flackert, der Pilot boostet quasi nonstop durch die Arena, der Engineer hat Schilde, die ganze Horden tanken, etc. Das sorgt für das typische “Power Trip”-Gefühl gegen Ende eines Runs, wie man es aus Roguelites kennt. Da es keine Persistenz gibt, können wir hier volles Rohr geben. Ein Balancingziel ist, dass Spieler selbst bei Niederlage das Gefühl haben: “Boah, aber gegen Ende waren wir richtig mächtig, hätt’s nicht doch noch weitergehen können?” – diese Gier nach noch mehr ist der Kern der Motivation für den nächsten Run.
-
-Aufnahme und Auswahl: Upgrades bekommt man durch:
-
-Drops: bestimmte Gegner (z.B. Bosse oder Elite) lassen Upgrade-Kisten fallen.
-
-Abschluss von Wellen/Events: Nach jeder gemeisterten Welle kann es sein, dass ihr eine von drei zufälligen Upgrades wählen dürft (bekanntes Roguelite-Prinzip). Wir könnten z.B. pro Welle einen zufälligen Positions-Upgradechip droppen lassen, der direkt einer Station zugeordnet ist (Farbe/Ikon für welche). Der Clou: Der entsprechende Spieler muss es aufsammeln und bekommt dann 2–3 Auswahlmöglichkeiten für seine Station. So hat jede Rolle Einfluss auf “ihre” Progression. Allerdings da die Rollen wechseln, wird derjenige das Upgrade vielleicht später nicht mehr selbst nutzen – trotzdem wählt man hoffentlich das, was fürs Team ideal ist.
-
-Shops/zwischenlevel: Da wir eigentlich endlos designen, könnten wir eventuell nach Bossen einen kurzen Shop-Bereich haben (vielleicht eine neutrale Station im Nichts, wo man für Score-Punkte Upgrades kaufen kann). Da keine persistenten Währungen vorgesehen sind außer Score, wäre das optional.
-
-Synergien verstärken Koop: Wir designen viele Upgrades so, dass sie in Kombination stärker sind. Z.B.: Ein Upgrade macht, dass das Geschütz beim Feuern die Schilde kurz deaktiviert (Nachteil). Ein anderes Upgrade aber belohnt: “Wenn Schilde deaktiviert, +50% Waffenschaden.” – Zusammen ist das brutal, alleine hat ersteres sogar Nachteil. Solche Kombos regen Team-Entscheidungen an: “Sollen wir wirklich die Schilde opfern für mehr Wumms?” – Kann sich lohnen, wenn der Engineer entsprechend reagiert. Auch cross-role-Synergien lieben wir: Der Sensor markiert mehr Ziele, der Gunner hat Bonus auf markierte, der Engineer kann evtl. markieren um Energie auf Gegner zu übertragen etc. Die wildesten Kombinationen führen wir in späteren Runs ein, um erfahrene Spieler zu begeistern.
-
-Keine Persistenz, aber Meta-Kriterien: Zwischen Runs gibt es keine dauerhaften Upgrade-Freischaltungen (kein Rogue-lite in dem Sinne von permanenten Upgrades). Allerdings könnten wir eine Meta-Währung vorsehen (z.B. “Schrott” oder “Techteile”), die für kosmetische Verbesserungen oder neue Fahrzeugmodelle benutzt wird. Diese würden rein optisch oder als Variant start loadouts gelten, aber keine Power-Kurve verändern. So bleibt Leaderboard-Fairness erhalten. Aber das gehört eher in Meta – das nächste Kapitel. Wichtig im Upgrade-System: Der Reiz liegt komplett in dem aktuellen Durchlauf.
-
-Platzbasiertes Upgrade-UI: Die Upgrades werden wahrscheinlich anschaulich an den Stationen dargestellt. Beispielsweise im HUD jedes Spielers sieht man kleine Symbole der Upgrades, die seine aktuelle Station hat (damit man sofort kapiert: “Oh nice, ich bin jetzt Gunner und sehe 5 Symbole – wir haben Extra-Schaden, Kettenblitz, Doppelläufe etc.”). Auch am Fahrzeugmodell selbst könnten Upgrades sichtbar werden – z.B. neue Aufbauten, zusätzliche Antennen, Leuchteffekte – sodass das Gefährt optisch immer überladener wird, was zum absurd skalierenden Stil passt. Das visuelle Feedback verstärkt den Stolz auf den Run-Fortschritt.
-
-Zusammengefasst: Das Upgradesystem treibt die Spieler in herrlich überdrehte Überpower-Gefilde jedes Runs. Keine zwei Runs sind gleich, weil die Kombinationen variiert. Und durch den einmaligen Kniff, dass Upgrades an Positionen gebunden sind, entsteht ein viel dynamischeres Teamplay: Ihr rüstet quasi das Fahrzeug und nicht euch selbst auf. Dieser Unterschied sorgt dafür, dass man sich beim Rollentausch nicht ärgert (“Mist, jetzt hat wer anders meine Buffs”), sondern eher freut (“Geil, jetzt darf ich mal mit dem mega aufgerüsteten Geschütz spielen, das wir aufgebaut haben!”). Es fördert das Gefühl, gemeinsam an einem Strang (bzw. Fahrzeug) zu ziehen.
-
-6. Gegner- und Bossdesign-Philosophie
-
-In einer endlosen Roguelite-Schlacht darf natürlich eine breite Palette an Gegnern nicht fehlen. Unsere Gegner sind so entworfen, dass sie gezielt Druck auf verschiedene Rollen ausüben – damit im Team jeder gefordert wird – und dass sie in Kombination spannende Situationen erzeugen. Zudem legen wir Wert darauf, dass Bosskämpfe echte Koop-Herausforderungen sind, die Koordination aller Stationen verlangen.
-
-Gegnerhorden (Trash & Elites): Die Standardgegner kommen in Wellen und oft in großen Mengen (Horden). Sie sind Kanonenfutter, aber gefährlich in Zahlen. Einige Beispieltypen und wie sie Rollen fordern:
-
-Swarmers (Schwarm-Gegner): Kleine, schnelle Nahkämpfer (z.B. mutantische Hyänen oder Drohnen), die das Fahrzeug umzingeln. Sie zwingen den Piloten, ständig in Bewegung zu bleiben (nicht eingekesselt werden) und den Schützen, Flächenwirkung einzusetzen oder schnell viele Ziele zu treffen. Der Engineer muss eventuell aufpassen, weil viele kleine Treffer schnell Schilde runterknabbern.
-
-Charger (Stürmer): Größere Gegner (z.B. ein mutantischer Keiler “Boar Grunt” laut Konzepttabellen), die frontal angreifen und rammen. Sie sind langsam aber zäh. Hier muss der Pilot Ausweichmanöver machen, oder der Gunner gezielt auf Schwachstellen schießen bevor der Rammbock trifft. Der Engineer könnte gezielt Schilde nach vorne verstärken.
-
-Ranged Disruptors: Gegner, die aus der Distanz stören, z.B. Spucker oder kleine Artillerie. Diese zielen oft auf einzelne Systeme: z.B. ein “Venom Lurker” spuckt Gift, das Sensoren stört (der Sensor-Offizier sieht dann Rauschen auf dem Radar), oder ein Drohnen-Sniper fokussiert den Pilot (Blendgranate, sodass das Bildschirm kurz dunkler wird). Solche Feinde priorisiert der Sensor und markiert sie, damit der Gunner sie schnell erledigt.
-
-Flyers (Luft-Einheiten): Gegner, die vielleicht aus der Dunkelheit von oben/unten kommen (z.B. Fledermaus-ähnliche Kreaturen “Raven Swooper”). Sie sind schwer zu treffen und attackieren unvorhergesehen. Das fordert den Sensor (3D-Scan), den Gunner (präzises Schießen nach oben) und den Piloten (evtl. drunter wegfahren oder sprünge).
-
-Elite-Varianten: Stärkere Versionen der obigen mit Spezialfähigkeiten, oft mit dem Ziel eine bestimmte Station zu kontern. Bsp: Ein “Elite Boar Brute” hat Frontpanzerung (reduziert Waffenschaden, Gunner muss flankieren oder Engineer muss Waffensystem boosten). Oder ein “Elite Venom Lurker” erzeugt eine Giftwolke, die Sensoren großflächig stört – das Team fährt quasi blind, bis es den Elite erledigt.
-
-Die Horden zusammengenommen sollen multidirektionale Gefahr erzeugen: also nicht nur stumpf von vorn, sondern ringsum, damit der Pilot manövrieren und drehen muss, der Gunner auch mal hinten ausschalten, etc. Dadurch hat auch jeder mal Action: Der, der gerade hinten einen Schwarm bemerkt, schreit “Hinten!” – alle drehen Aufmerksamkeit hin, etc. Das fördert Kommunikation. Gegner haben auch Audio-Cues (z.B. ein heulendes Geräusch für anstürmende Charger), damit auch ohne Sensor-HUD geahnt werden kann, was kommt.
-
-Pressure auf Rollen: Wichtig ist uns, dass keine Rolle gelangweilt ist. Also designen wir Gegner, die gezielt Druck auf eine Station bringen. Beispiele:
-
-Ein Hacker-Feind (vielleicht eine schwebende KI-Drohne) fokussiert den Engineer – indem er versucht, das Energiesystem zu überladen. Im Spiel könnte das heißen: Plötzlich flackern die Energiekonsole, der Engineer muss ein Gegenmanöver (Knopfdruck-Sequenz) machen, während die anderen weiterkämpfen. So hat er “seinen Kampf” parallel.
-
-Ein Tarnkappen-Feind ist nur über die Sensoren sichtbar (für andere unsichtbar). Der Sensor-Offizier muss ihn enttarnen (z.B. Scan-Ping genau timen) – bis dahin haben die anderen vielleicht Beschuss von “irgendwo” und müssen vertrauen, dass der Sensor es fixt.
-
-Gegner mit starker Panzerung, die nur von hinten verwundbar sind, bringen Pilot und Gunner in Teamarbeit: der Pilot muss so manövrieren, dass der Gunner den Rücken treffen kann.
-
-Gegner, die Fallen legen (z.B. Minenleger), fordern den Specialist: Seine Fähigkeiten (EMP, Schild) können Minen neutralisieren oder überstehen.
-
-Durch solche Designs entstehen Mini-Puzzles mitten im Gefecht, die nur gelöst werden, wenn die passende Rolle reagiert. Falls die gerade getauscht wurde, heißt es schnell adaptieren! Das ist gewollt: “Oh, ich bin jetzt Sensor, ich muss schnell diese Tarnviecher aufdecken!” – so lernt jeder alle Mechaniken.
-
-Bosskämpfe: Die Bosse sind die Highlights eines Runs. Jeder Boss ist einzigartig, aber allgemein gilt: Ein Boss testet das Zusammenspiel aller Rollen aufs Äußerste.
-
-Designprinzip: Multi-Phase Kämpfe mit telegraphierten schweren Angriffen, Adds (kleinere Gegner zur Unterstützung) und Schwachstellen, die nur durch koordiniertes Vorgehen ausgenutzt werden können.
-
-Beispiel Boss 1 – “Ash Titan” (Feuer-Thematik): Ein riesiges biomechanisches Ungetüm, langsam aber extrem stark gepanzert. Phase 1: Er stapft herum (Pilot muss Abstand halten), feuert einen Ember Ring AoE (Specialist könnte Schild aktivieren, Engineer Energie in Schild, alle weichen aus). Zwischendurch spawnen kleine Feuergremlins (Gunner wegputzen). Schwachstelle: Nach einem schweren Flammen-Sweep-Angriff überhitzt der Titan kurz – dann öffnet sich an seinem Rücken eine entblößte Stelle. Nur wenn Sensor das markiert und Pilot geschickt manövriert, kann der Gunner diese Schwachstelle treffen – riesiger Schaden. Phase 2: Titan wird schneller, ruft Lava-Pfützen hervor (Pilot muss Terrain beachten), etc. Hier brauchen wir: Pilot, um in Position zu bleiben und Flächen auszuweichen; Gunner, um kontinuierlich DPS aufrecht zu halten und dann gezielt Schwachstelle zu treffen; Engineer, um dauernd Schilde hochzufahren, weil Titan Schaden output immens; Specialist, um im richtigen Moment evtl. Zeitlupe oder Schaden+ einzusetzen, damit der Schwachstellenzeitraum maximal genutzt wird; Sensor, um in all dem Effektgewitter die Übersicht zu behalten und z.B. kleine Adds frühzeitig zu erkennen. Ein solcher Boss ist ein Spektakel aus Licht und Schatten – perfekt um unser Effekt- und Dunkelheitsdesign auszuspielen.
-
-Beispiel Boss 2 – “Mire King” (Gift/Thematik): Eher schneller, Spinnen-/Kreaturenartig, spuckt Giftpools (die bleiben als Zonen liegen – Pilot muss drum rum navigieren). Er hat verwundbare Säcke am Rücken, die Sensor markieren kann. Allerdings bewegt sich der Boss flink, springt auch mal – hier kommt es auf Gunner-Zielsicherheit an und eventuell auf Specialist-CC (z.B. Stun-Fähigkeit um ihn kurz festzusetzen). Der Engineer hat hier evtl. den Job, Gift-Schaden zu neutralisieren (vielleicht gibt es ein Entgifter-Modul). Das Team muss also anders agieren als beim Tank-Boss zuvor.
-
-Beispiel Boss 3 – “Chrome Juggernaut” (Metal/Spiegel-Thema): Dieser Boss ist extrem aggressiv, dash’t mit hoher Geschwindigkeit (Pilot voller Fokus aufs Ausweichen). Er hat reflektive Panzerung, teils schickt er Schüsse zurück – was den Gunner vorsichtig zielen lässt (vielleicht erst Sensor scannen, wo kein Reflektionsfeld ist). Seine Schwäche ist vielleicht Rückentreffer – also muss Pilot ihn ausmanövrieren, Gunner auf den Rücken schießen, Specialist könnte einen EMP nutzen, damit seine Reflektion kurz ausfällt, etc.
-
-Allgemein sollen Bosse Kommunikation erzwingen: Man sieht eine Attacke telegraphiert (“Laser auflädt links!”) – einer ruft es, alle reagieren. Vielleicht muss mal der Specialist dem Engineer sagen “Aktiviere jetzt das Totalschadens-Abwehrmodul!”, oder Gunner schreit “Halt ihn ruhig!” zum Piloten. Solche Momente fühlen sich großartig an, wenn sie klappen – das Team wächst dran.
-
-Boss und Rollentausch: Besonders fies-lustig: Auch in Bossfights hört der Rollentausch nicht auf. Stellt euch vor, mitten im Titan-Kampf tauschen plötzlich alle Plätze – absolute Panik, aber wenn man’s dennoch schafft, den Boss zu legen, feiert man umso mehr. Wir planen, Tausch auch hier einzusetzen, aber vielleicht etwas geskripteter: z.B. nach Phase 1 sicher ein Swap, damit Phase 2 jeder anders ist. Oder genau im Climax, aber mit starker Zeitlupe und Cinematic, damit es eher episch als frustig wirkt. Könnte z.B. inszeniert werden als “Boss mind-controlled kurz das Fahrzeug – alle Systeme durcheinander!” – coole Lore-Integration.
-
-KI-Verhalten: Die Gegner-KI wird einfach aber effektiv gehalten: Horden nutzen Wegfindung, um das Fahrzeug zu umkreisen oder zustürmen (A*-basierte Navigation, siehe unten bei Assets). Sie müssen in Massen flüssig laufen. Elite-Gegner haben ein zwei besondere Routinen (z.B. Ausweichmanöver bei Beschuss, oder gezieltes Anvisieren von Spieler X). Bosse haben Sequenzen, ggf. Phasen, aber wir vermeiden zu lange Leerlauf – im Koop soll immer irgendwas zu tun sein für jemanden.
-
-Schwierigkeitsskalierung: Mit fortschreitendem Run steigen die Gegnerzahlen und -stärken. Wir generieren später auch absurde Kombinationen: z.B. gleichzeitig Flieger, Schwärme und Distanz-Störer – da müssen alle Hände an Deck sein. Möglicherweise erhält das System Infos darüber, welche Station evtl. gerade “unterfordert” war und wirft gezielt Gegner, die diese Station fordern. (Z.B. falls ein Spieler sehr wenig Sensordaten nutzen musste, dann kommt eine Tarn-Welle). So bleibt es variabel.
-
-In Summe folgen wir der Philosophie: “Einfache Grundlagen, komplexe Kombinationen.” Jeder Gegnertyp für sich ist verständlich (Telegraphing, klare Rolle), aber in der Summe entsteht herrliches Chaos, das das Team meistern muss. Es soll Momente geben, wo man nach einer hektischen Welle durchatmet und sagt: “Krass, hast du gesehen wie wir den Elite und die 30 kleinen gleichzeitig gepackt haben? Geile Sache!” – Das sind die best rewards, neben den Punkten.
-
-7. Prozedurale Generierung der Welt
-
-Die Spielwelt ist düster, oppressiv und mysteriös – wir nutzen Dunkelheit als Mechanik. Prozedurale Generierung sorgt dafür, dass kein Run dem anderen gleicht, sowohl was Layout als auch Ereignisse betrifft.
-
-Arena-Struktur: Wir generieren die Welt in Segmenten. Anstatt nahtloser offener Welt hat unser Run eine Abfolge von prozedural zusammengesetzten Arenen oder Abschnitten, verbunden durch kurze Übergänge. Man kann es mit Räumen in einem Dungeon vergleichen, nur dass unsere Räume oft Outdoor-Arealen gleichen (z.B. ein Lichtungsbereich, ein Ruinenhof, eine Fabrikhalle – aber immer begrenzt). Nach X Gegnerwellen oder einem Boss bewegt sich das Team via Übergang in die nächste Arena. Übergänge könnten Tunnel, Tore oder Teleporter sein – gerade in Dunkelheit kann man gut “undeutliche” Übergänge machen (“das Fahrzeug fährt ins nächste düstere Gebiet…”). Jede Arena wird prozedural aufgebaut aus modularen Levelbausteinen. Wir nutzen z.B. ein Tool wie Dungeon Architect, das randomisierte Layouts aus vorgefertigten Modulen erzeugen kann. Damit stellen wir sicher, dass etwa Hindernisse, Deckungen und Höhenunterschiede immer neu angeordnet sind, aber nach unseren gestalterischen Regeln (z.B. genug Platz für Fahrzeugbewegung, sinnvolle Cover für Gegner etc.). Es ist Arena-Style: oft kreisförmig oder oval angelegt mit Rändern, an denen Gegner spawnen oder Tore aus dem Boden. Teilweise haben Arenen auch prozedurale Gefahrenelemente: z.B. zufällig platzierte Minenfelder, Engpässe, in denen Flutlicht an- und ausflackert (Licht als Feedback!).
-
-Dunkelheit & Sichtbarkeit: Das gesamte Spiel spielt bei vorherrschender Dunkelheit. Die Beleuchtung kommt punktuell von: eurem Fahrzeug (Scheinwerfer, Mündungsfeuer, Energieschild-Glühen), von Gegner-Effekten (z.B. Augenleuchten, Geschosse), von spärlichen Umweltlichtern (flackernde Neonröhren, mystische Pilze, ferne Blitze). Diese “Lichtfetzen” sind nicht nur Stimmung, sondern Feedback. Z.B.: Das Aufleuchten eines Neonzeichens im Hintergrund könnte einen Spawnpunkt markieren. Oder ein Mündungsfeuerblitz eines versteckten Feindes offenbart kurz seine Position in der Finsternis. Der Sensor-Offizier kann per Fähigkeit temporär Areale beleuchten (Flares, Sonar-Scan visualisiert als Wellen). Wir setzen auch Volumetrischen Nebel ein – Bodennebel, der Licht sichtbar macht. Ein Asset wie Volumetric Fog & Mist 2 hilft uns, volumetrische Nebeleffekte in URP darzustellen. Dadurch entstehen atmosphärische Godrays, wenn z.B. euer Scheinwerfer einen Gegner streift oder eine Explosion aufblitzt. Die Dunkelheit ist somit tatsächlich Gameplay: Sie verbirgt Gegner, erschwert Zielen und macht Sensoren wichtig. In manchen Arealen ist es so stockdunkel, dass ihr praktisch blind fahren müsst – außer euer Sensor pingt, oder der Specialist wirft eine “Lichtbombe”. Dann sind da wieder Areale, wo es zu hellen Blitzen kommt (z.B. ein elektrischer Sturm im Hintergrund), die kurz alles taghell machen – schön, aber eventuell seht ihr dann auch, von wie vielen Feinden ihr umgeben seid… Gänsehaut!
-
-Prozedurale Events: Neben der Levelgeometrie generieren wir auch zufällige Events pro Abschnitt. Das kann sein:
-
-Environment-Effekt: Z.B. “Totale Finsternis” (zeitweise alle Lichter aus, nur Sensoren helfen), “Elektrosturm” (zufällige Blitze fügen Schaden zu, aber beleuchten), “Nebelwand” (Sicht extrem kurz, Radar ebenfalls beeinflusst). Diese Effekte zwingen neue Taktiken: Bei Nebel rückt man vllt. zusammen, etc.
-
-Missions-ähnliches Ziel: Mal spawnt ein neutrales Objekt, das Bonus bringt, wenn man es erreicht. Z.B. ein liegengebliebener Versorgungskoffer – wenn Pilot hinfährt und Specialist “Interagieren” drückt, kriegt man Extra-Upgrades. Solche Events generieren kurzfristige Prioritäten, was in Chaos interessant ist (“Sollen wir riskieren, da hinzuhechten, während Gegner kommen?”).
-
-Horden-Modifikatoren: Zufällig könnte eine Welle “verstärkt” sein – z.B. Mutations-Event: Alle Gegner der nächsten Welle haben verdoppelte Geschwindigkeit aber halbierte HP. Das wäre vorher angekündigt und ändert, wie man vorgeht (hier: AoE-Waffen ideal, Pilot muss auf die flinken Gegner achten). Oder “Alpha Jagd”: Unter den nächsten Feinden ist ein goldener, der flieht – wenn ihr ihn abschießt (Sensor markieren!), gibt’s fette Punkte. So entstehen Nebenaufgaben im Gefecht.
-
-Diese Events werden randomisiert aber nach Balancingkurve verteilt – in frühen Arenen eher einfache, später crazier.
-
-Mapstruktur Makro: Möglicherweise haben wir verschiedene thematische Zonen (Biomes), die pro Run in zufälliger Reihenfolge kommen. Z.B. Start immer im “Ödland”, dann zufällig “Industrieanlage”, “Pilzwald”, “Alien-Ruinen” etc., jeweils mit eigenem Flair und spezifischen Gegnern/Boss. Ein Run könnte auch enden, indem man alle Biomes einmal schafft und am Ende im “Void” stirbt – aber als Endlosgame ist theoretisch Loop möglich (dann mit steigendem Schwierigkeitsmultiplikator). Das ist Balancingfrage.
-
-Technik der Levelgen.: Wir nutzen erprobte Tools. Dungeon Architect erlaubt uns, modulare Level zufällig zu bauen und mit Props zu füllen. Damit können wir z.B. Ruinenblöcke immer neu anordnen, Verstecke für Gegner definieren etc. Für offenes Terrain wie Ödland könnten wir Tools wie Gaia oder MapMagic verwenden, aber voraussichtlich reichen uns kleinere handauthored Terrains, die wir zufällig kombinieren. Wichtig ist Performance – auch hier hilft, dass wir URP nutzen und gegebenenfalls DOTS (ECS) für viele Objekte. Wir werden Levelgeometrie streamingfähig halten (während Bossintro den nächsten Abschnitt im Hintergrund laden).
-
-Dunkelheits-Mechanik Integration: Wir könnten einen Mechanismus einführen, bei dem Beleuchtung Teil des Fortschritts ist. Z.B. dass man eine besondere Scheinwerfer-Upgrade findet, die für alle nachfolgenden Arenen mehr Grundlicht bietet – oder andersrum ein Debuff-Event: “Stromausfall – nachfolgende Arenen dunkler”. Das wäre ein interessanter Twist, aber vorsichtig dosiert, da Kernchallenge ja Dunkel bleibt.
-
-Zusammengefasst: Unsere prozedurale Welt ist unberechenbar und stimmungsvoll. Sie stellt sicher, dass man immer on edge bleibt, nie sagen kann “das kenne ich, easy”. Stattdessen: “Hier ist diesmal alles anders angeordnet, passt auf!” – was die Kooperation fordert. Die Dunkelheit ist unser Alleinstellungsmerkmal in der Atmosphäre: Sie macht das Spiel intensiver, unterstreicht das Teamgef&uumlh;hl (“Zusammen ins Unbekannte leuchten”) und sieht mit stylized VFX zugleich fantastisch aus.
-
-8. Meta (Score, Leaderboard, keine Levelprogression)
-
-Unser Spiel setzt auf klassische Arcade-Meta anstelle von modernen Unlock-Grinds. Das heißt, der wichtigste Messwert ist eure Punktzahl und euer Highscore-Rang auf der Online-Rangliste. Es gibt keine persistente Charakter- oder Fahrzeugverbesserung durch Metaprogression – jeder Run startet gleich (von eventuell kosmetischen Anpassungen abgesehen).
-
-Score-System: Punkte (Score) bekommt man für praktisch alles, was ihr im Run leistet, gewichtet nach Schwierigkeit: besiegte Gegner (stärkerer Gegner = mehr Punkte, ein Boss = fette Punkte), überlebte Zeit (jede Sekunde oder Welle gibt etwas Score), absolvierte Events (z.B. Bonus, wenn man ein optionales Missionsziel schafft), und Stil-Boni (falls wir Style-Kategorien einbauen wie “Multi-Kill +100”, “Ausgewichen im letzten Moment +50”). Da wir Koop sind, gilt der Score immer für das Team gemeinsam. Es gibt also einen Run-Score, der dann den einzelnen Spielern gleichermaßen gutgeschrieben wird. Wir verhindern damit intern Konkurrenz und fördern Teamwork – alle wollen zusammen den Score maximieren. Trotzdem könnten wir am Ende eines Runs ein Stat-Bildschirm zeigen, wer welche Beiträge hatte (“Meiste Kills: PlayerX, Meiste Schaden geblockt: PlayerY”), zur Ego-Streichel-Zwecken, aber ohne separaten Score.
-
-Highscore Leaderboard: Das Herz der Meta. Online gepflegt (wir nutzen z.B. Unitys Online Services oder eine eigene Datenbank), zeigen wir global die Top-Runs an: z.B. “Platz 1: 12,345,678 Punkte von Team XY, Wellen: 120, Zeit: 2h45m”. Man kann filtern nach Solo (1 Spieler + 4 Bots), Duo, Trio, etc., damit Vergleiche fair bleiben. Ebenso könnte es wöchentliche Leaderboards geben, falls gewünscht, um regelmäßig frischen Wettbewerb zu haben. Motivation: Das treibt Spieler an, immer wieder zu versuchen, ihre oder andere Bestleistungen zu knacken. Das Spiel ist schwer genug, dass die meisten Runs eher früher enden – der Reiz, doch mal weit zu kommen, soll motivieren (“Noch ein Run, diesmal schaffen wir den zweiten Boss und punkten richtig!”).
-
-Keine persistente Progression: Im Klartext: Es gibt kein XP-Leveln, keine freischaltbaren Fähigkeitsbäume, keine dauerhaften Stat-Boni. Warum? Weil wir wollen, dass Skill und Teamarbeit zählen – nicht Grinden. Außerdem hält es das Balancing kompetitiv fair. Wenn jemand viel spielt, wird er zwar besser (Skill) und kennt mehr Upgrades, aber er hat nicht objektiv stärkere Werte im nächsten Run. Dadurch ist das Leaderboard auch wirklich ein Skill-Board.
-
-Langzeitmotivation: Abseits vom Score könnten wir den Spielern kosmetische Ziele geben. Zum Beispiel Titel/Badges auf dem Leaderboard (“Warp Pilot” für X Bosse gelegt) oder freischaltbare Fahrzeug-Skins. Das würde aber über Achievements oder an Score-Milestones hängen (“erreiche 1 Mio Punkte insgesamt, schalte Neon-Lackierung frei”). So etwas ist optional, schadet aber nicht dem Konzept von keiner Gameplay-Progression. Wichtig: Diese Cosmetics beeinflussen das Spiel nicht. Sie sind nur dafür da, den Spielern einen persönlichen Ausdruck und Ziele zu geben (z.B. “Ich will diesen coolen Skin, dafür müssen wir mal Boss 3 schaffen.”). Aber wenn wir merken, die reine Score-Jagd reicht als Motivation (was bei reinen Arcade-Fans oft der Fall ist), könnten wir es minimal halten.
-
-Community/Competition: Wir fördern den Wettbewerb eher sanft: Es gibt Ranglisten, vielleicht gelegentliche Challenges (“Weekly Challenge: Fahrzeug hat nur halbe Energie, wer holt meisten Punkte?” – solche Modes könnten später via Events kommen). Aber Kern ist das unendliche Verbessern des eigenen Könnens. Da es Koop ist, hoffen wir auf Social-Meta: Teams schließen sich zusammen, um Rekorde zu jagen. Möglicherweise integrieren wir Teamprofile oder Freundesleaderboards, damit man sich im kleinen Kreis misst.
-
-Speicherung: Pro Run gibts Stats, die lokal gespeichert werden (der eigene Highscore, Stats, die man sich anschauen kann – “Insgesamt 5000 Gegner besiegt, 50 Runs gespielt” – das sind aber rein persönliche Zahlen, analog Achievements/Trophies). Das Save-System speichert wirklich nur solche Meta-Daten und Einstellungen. Dinge wie Upgrades im Run sind flüchtig und werden bei Run-Ende verworfen.
-
-Kein Levelprogression, aber Schwierigkeitskurve: Da wir kein Kampagnenende haben, ist theoretisch immer “Level 1” bis “endlos”. Allerdings kann man informell so denken: Welle 1-10 = easy, 11-20 = medium, etc. Es gibt also Progression innerhalb des Runs – nur eben kein äußerliches Levelsystem.
-
-Replayability: Die Meta motiviert über Score, aber natürlich lebt das Spiel vom immer neuen Gameplay (prozedural, Swap). So ist es ähnlich wie z.B. Nuclear Throne oder Arcade-Klassiker: Man spielt um des Spielens willen und jagt den eigenen Highscore. Durch wechselnde Team-Zusammensetzungen (andere Freunde, andere Rollenverteilung, wörtlich) bleibt es frisch.
-
-Abschließend sei betont: Diese bewusste Entscheidung gegen persistente Upgrades ist mutig, aber passt zur Vision. Es zwingt uns, das Gameplay an sich so spaßig zu machen, dass es auch ohne Karotte vor dem Esel trägt. Wir glauben daran – durch den einzigartigen Rollentausch-Mechanismus und das sofortige Chaos-Feedback wird jeder Run zum Ereignis, auch ohne dass man “etwas freischaltet”. Der Nervenkitzel ist die Belohnung, der Score der Maßstab. Und wer’s ruhiger angehen will, freut sich einfach am gemeinsamen Erfolg, selbst wenn’s “nur” 10 Minuten ging – dann heißt’s eben: gleich nochmal!
-
-Empfohlene Unity-Assets für die Entwicklung
-
-Um unsere Vision effizient umzusetzen, setzen wir auf bewährte Unity Assets (gerne auch kostenpflichtige Top-Assets) in verschiedenen Bereichen. Hier die wichtigsten Empfehlungen mit Begründung:
-
-Fahrzeug-Bewegung & Physik
-
-NWH Vehicle Physics 2 –
-Link: Asset Store – NWH Vehicle Physics 2
-Verwendungszweck: Dieses Asset liefert eine komplette, realistische Fahrzeugsimulation out-of-the-box. Wir steuern zwar ggf. ein Sci-Fi-Fahrzeug, aber die Grundlagen von Fahrphysik – Beschleunigung, Lenkung, Gewicht – lassen sich mit NWH hervorragend abbilden. Es unterstützt verschiedenste Vehikeltypen (vom Auto bis LKW) und lässt sich für Arcade-Feeling anpassen (es hat sogar ein Arcade-Modul integriert). Damit können wir unser Fahrzeug glaubwürdig, aber auch spaßig steuern lassen, ohne alles von Grund auf selbst programmieren zu müssen.
-Behalten/Anpassen: NWH ist „realistisch, einfach zu nutzen und hochgradig anpassbar“ – wir nutzen vor allem die Module für Fahrverhalten, Federung und Physik. Wir würden das Arcade-Modul aktivieren, um die Steuerung etwas zu vereinfachen (z.B. drift forgiveness, einfacheres Handling). Die fortschrittlichen Features (wie Motorsimulation mit Gangschaltung, wenn unser Setting das nicht braucht) könnten wir deaktivieren, um Komplexität zu reduzieren. Ebenfalls super: Es kommt mit einem Wizard für Fahrzeugeinrichtung – wir können schnell Prototypen.
-Warum passend: Unser Spiel erfordert ein präzises, spaßiges Fahrzeughandling. NWH liefert uns Stabilität (z.B. saubere WheelCollider oder eigene WheelController-Lösungen) und Performance. Gerade da mehrere Spieler Einfluss auf das Fahrzeug haben (Pilot lenkt, aber z.B. Engineer moduliert Geschwindigkeit per Energie), brauchen wir eine robuste Physik, die solche Eingriffe verträgt. NWH’s modulare Architektur erlaubt es, extern ins Fahrverhalten einzugreifen – z.B. können wir über sein API Boosts oder Energieeffekte implementieren. Zudem hat es Multiplayer-Support (Mirror/Photon Integrationen) bereits vorgesehen, was hilfreich für Sync. Unterm Strich sparen wir enorm Zeit und bekommen realitätsnahe Physik, die wir für unser stylized Setting nur leicht überdrehen müssen (z.B. höhere Beschleunigungen für Arcade-Gefühl). Kein “Vielleicht” – das Asset ist quasi Industriestandard für Unity-Fahrzeuge.
-
-Gegnerhorden & Pathfinding
-
-A Pathfinding Project Pro* –
-Link: Asset Store – A* Pathfinding Project Pro
-Verwendungszweck: Für die vielen Gegner benötigen wir ein performantes Pfadfindungs- und Bewegungs-KI-System. Aron Granbergs A* Pathfinding Project (Pro-Version) ist hier die erste Wahl. Es bietet Grid- und Navmesh-basierte Pathfinding, lokales Avoidance und ist dafür bekannt, blitzschnell und gut dokumentiert zu sein. Wir können damit unsere Horden auch in komplexeren Arenen zuverlässig zum Spielerfahrzeug navigieren lassen – sei es 2D-Grid für top-down oder 3D Navmesh für unsere Arenen.
-Behalten/Anpassen: Wir nutzen insbesondere das GridGraph für offene Areale (schnelle Berechnungen auch bei vielen Agents) und eventuell das RecastGraph für unebene, 3D-Terrain-Arenen. Wichtige Features: multiple target chasing (alle Gegner jagen dynamisch das Fahrzeug), local avoidance, und die Möglichkeit, während des Spiels Graphen zu verändern (z.B. wenn wir Hindernisse zerstörbar haben). APP Pro erlaubt auch, viele Einheiten gleichzeitig Pfade finden zu lassen, dank optimierter Algorithmik und sogar Burst/DOTS-Unterstützung. Wir würden unnötige Funktionen (wie PointGraph oder Turn-Based utilities) weglassen.
-Warum passend: Unitys eingebaute NavMesh ist okay, aber bei großen Gruppen stößt es an Grenzen, vor allem wenn wir pro Frame viele Repathings brauchen. A Pathfinding Pro ist laut Community eine der bekanntesten und bestens dokumentierten Lösungen, speziell auch für große Unit-Zahlen. Für uns essenziell, da bis zu ~70 Gegner simultan aktiv sein können. Mit diesem Asset können wir sicherstellen, dass Horden uns intelligent umzingeln, ohne dass die CPU glüht. Zudem ist es flexibel: wir können Gebiete als off-limits markieren (z.B. Abgründe), verschiedene Tags vergeben (für verschiedene Gegnerarten, falls nötig). Auch Fliegen oder Springen von Gegnern kann man durch Kosteneinstellungen im Grid approximieren. A*PP Pro kommt mit umfangreichen Debugging-Tools – bei der komplizierten Wegfindung in prozeduralen Levels ein großer Vorteil. Somit: ein zuverlässiges Fundament, um die “Schwarmintelligenz” unserer Gegner glaubhaft zu machen, was das Gameplay-Feeling immens unterstützt.
-
-Prozedurale Levelgenerierung
-
-9. Crew Harmony & Seat-Systeme (Stand 2026-02-01)
-
-Crew Harmony & Combos
-- WAS: Serverseitiges Combo-System mit Zeitfenstern, das nur durch Aktionen mehrerer Seats ausgelöst wird.
-- WARUM: Erzeugt Entscheidungsdruck und Team-Synergien; Seats greifen aktiv ineinander.
-- WIE: Server trackt letzte relevante Aktionen je Seat + Zeitfenster; Combos sind deterministisch und autoritativ. Client zeigt Combo-Toast kurz an.
-- Aktuelle Combos: Execution Combo (Support markiert + Gunner killt + Power >60% Weapons), Momentum Surge (Systems Overdrive + Pilot Boost + Power Engines-Shift), Perfect Stabilization (Support Repair perfekt während Shield Burst).
-
-Power: Tactical Load Management
-- WAS: Energie-Shift hat Trägheit; schnelle Rebalancing-Aktionen erzeugen Instability + Heat. Timing-Window belohnt präzise Follow-ups.
-- WARUM: Power ist Rhythmus/Skill statt Slider-Mikromanagement.
-- WIE: Target-Energie wird gesetzt, reale Energie lerpt mit Inertia; bei großen Shifts entsteht Timing-Window. Treffer = Perfect (Bonus), Miss = Instability/Overload.
-
-Systems: Tactical Intervention
-- WAS: Abilities haben Modi, abhängig von Power-Zustand, Combo-Status und Support-Fenstern.
-- WARUM: Systems ist situativ, nicht nur Cooldown-Drücken.
-- WIE: EMP/Shield/Slow/Overdrive lesen dynamische Modes (standard/overcharge/combo etc.) und ändern Effekte entsprechend.
-
-Support: Information & Clutch
-- WAS: Scan verteilt Status-Layer (Exposed, Volatile, Tracking). Repair ist ein Timing-Skillcheck.
-- WARUM: Support liefert „Ich sehe, was ihr nicht seht“ + kritische Clutch-Momente.
-- WIE: Scan markiert + Status-Stack; Repair erzeugt Timing-Window, perfektes Timing triggert Combo.
-
-Seat-UI
-- WAS: Seat-spezifische UI mit 70% Fokus + 30% Crew-Overview.
-- WARUM: Spieler sollen beim Seat-Swap sofort wissen, was wichtig ist.
-- WIE: Active Seat bekommt eigenes Layout/Accent; andere Seats erscheinen als kompakte Tiles mit Live-Status.
-
-Testing & Doku
-- WAS: Unit + Integration + Playwright Snapshots pro Seat.
-- WARUM: UI und Combos müssen stabil bleiben trotz schneller Iteration.
-- WIE: Tests prüfen Combo-Trigger, Status-Effekte, Seat-UI Snapshots, Desktop+Mobile.
-
-Datengetriebene Erweiterbarkeit
-- WAS: Status-Effekte/Combos sind registrierbar und datengetrieben.
-- WARUM: Endlose Variation ohne Refactor.
-- WIE: Neue Effekte/Combos via `shared/src/data/statusEffects.json` und `shared/src/data/combos.json`.
-
-Dungeon Architect –
-Link: Asset Store – Dungeon Architect
-Verwendungszweck: Dungeon Architect ist ein preisgekröntes Framework, um prozedural Layouts und Level aus vorgegebenen Modulen zu erzeugen. Wir verwenden es, um unsere Arenen und eventuelle Dungeon-ähnliche Übergänge zu bauen. Mit diesem Tool können wir definieren, wie Räume/Arenen aussehen (Theme files) und es generiert uns endlose Variationen davon. Es vereinfacht die Erstellung komplexer, zufälliger Level-Layouts enorm – wir müssen nur Bausteine und Regeln liefern.
-Behalten/Anpassen: Wir würden Dungeon Architect’s Theming Engine nutzen, um z.B. unterschiedliche Biome zu definieren (Industrie, Höhle, Ruinen) und es prozedural füllen lassen mit den entsprechenden Meshes/Props. Besonders wertvoll sind Features wie Snap-Grid-Flow, um Räume/Hallen via Snap-Modular Kits zu verbinden. Wir beschränken die Output-Größe pro “Arena”, damit performance gewahrt bleibt und designen lieber mehrere kleinere Themes als einen Megadungeon – DA kann aber beides. Dinge, die wir eventuell nicht brauchen: DA hat auch First-Person-Korridore und City-Generatoren, aber für uns primär: Arena und vielleicht kleine Labyrinth-Elemente. Wir würden darauf achten, dass generierte Strukturen fahrzeugtauglich sind (breite Gänge etc.), was mit DA’s Regeln gut steuerbar ist.
-Warum passend: Prozedurale Levels sind ein Muss für Wiederspielwert. Dungeon Architect ist hierfür eine robuste und extrem mächtige Lösung. Andere Tools (Procedural Toolkit etc.) bieten Low-Level-Funktionen, aber DA liefert einen ganzen Workflow – ideal, um schnell Resultate zu sehen und iterieren. Es passt zu Unity 2022/URP und lässt sich via API auch zur Runtime triggern (z.B. generiere neue Arena beim Übergang). Unsere Vision dunkler, modulare Arenen lässt sich perfekt damit umsetzen. Wir sparen viel Entwicklungszeit, die wir sonst ins Schreiben eigener Levelgen-Algorithmen stecken müssten. Zudem sind Erweiterungen möglich: Will man später mal ganze Schlauchlevels oder Netzwerk aus Arenen: DA schafft das. Ein Risiko ist der recht hohe Preis (~300$) – aber für die Qualität lohnt es, zumal es im Unity-Asset-Ökosystem als Top Pick für Prozedural-Generation gilt. Unterm Strich garantiert es uns abwechslungsreiche, “extrem leistungsfähige” Level-Layouts und passt damit genau zu unserem Anspruch an Variation.
-
-Online-Koop / Netcode
-
-Unity Netcode for Entities (UGS Multiplayer) –
-Link: Unity Multiplayer Documentation – Netcode for Entities
-Verwendungszweck: Für das 1-5-Spieler-Online-Koop brauchen wir ein solides Netzwerk-Framework. Wir entscheiden uns für Unitys eigenen Netcode for Entities (Teil des DOTS/ECS-Stacks). Dieses bietet einen server-authoritativen Ansatz mit Client-Prediction out of the box – genau was wir wollen, um Cheating vorzubeugen und die Physik synchron zu halten. Damit setzen wir auf Unity Gaming Services (Relay, Lobby etc.) und können einen Host-Server architektonisch als Dedicated Server fahren (entweder vom Host-Spieler oder wirklich in der Cloud). Die Alternative wäre ein P2P-Framework wie Mirror oder Photon, aber wir bevorzugen Authority.
-Behalten/Anpassen: Wir nutzen Netcode for Entities in Kombination mit dem Entities Component System, zumindest für die netzwerkrelevanten Teile (Fahrzeug- und Gegnerzustände). Das Framework ist noch recht neu, aber in 2025 durchaus einsatzbereit für mittelgroße Spiele – es hat erst kürzlich beeindruckende Demos mit hunderten Spielern unterstützt. Wichtig ist, wir implementieren Server-side Simulation: Der Host (oder dedizierte Server) berechnet Physik und Gameplay, Clients senden nur Eingaben (wie der InputCommand-Ansatz aus unserem TechDoc) und erhalten States. Das passt perfekt, da Netcode for Entities genau das Paradigma vorgibt (inkl. automatischer Snapshot-Synchronisierung und Vorhersage/LagCompensation). Dinge wie GhostPredictionErrors werden wir feintunen müssen (z.B. beim Fahrzeug). Als optionales Unity-Service ziehen wir Unity Relay/Lobby hinzu, damit Spieler unkompliziert zusammenfinden und verbinden (Netcode for Entities integriert sich gut mit Lobby/Relay laut Unity).
-Warum passend: Für uns zählen zwei Dinge: Performance (gerade mit vielen Gegner-Entities) und Sicherheit/Fairness (Leaderboards!). Ein server-authoritatives Modell stellt sicher, dass die Punktestände nicht durch Client-Hacks manipuliert werden – der Server (gehostet vom ehrlichen Host oder dediziert) bestimmt, was echt passiert. Unitys Netcode-Framework ist darauf ausgelegt und funktioniert insbesondere mit DOTS sehr performant, sodass auch Dutzende Gegner synchronisiert werden können. Eine Reddit-Empfehlung besagt: “Photon ist zwar einfach, aber teuer; Netcode mit Unity Services funktioniert gut, und wenn du dedizierten Server willst, verschwende keine Zeit mit Mirror.”. Das bestätigt unsere Wahl: Mirror (P2P) wäre simpler initial, aber weniger geeignet für dedizierte Server-Lösungen, und Photon kostet laufend und hat begrenzte CCU ohne Gebühren. Mit Unity Netcode behalten wir Kontrolle und Skalierbarkeit. Zudem bleibt es zukunftssicher innerhalb Unitys Ecosystem (weiterhin unterstützt in kommenden Versionen). Wir werden die Lernkurve meistern – unser Team hat bereits Erfahrung mit ECS. Durch den Entities-Ansatz können wir z.B. Gegnerhorden als Entities laufen lassen, was massiv viele Gegner ermöglicht, während Netcode die relevanten Zustände repliziert. Summiert: Unity Netcode (Entities) gibt uns die benötigte Autorität und Performance. Wir entscheiden uns klar dafür und richten unsere Architektur (siehe Tech-Doc Ausschnitte) entsprechend aus (Server Commands, keine Split-Screen, eine geteilte Kameraperspektive synchron, etc. ).
-
-Kamerasystem (Multi-Perspektive pro Rolle)
-
-Cinemachine (Unity) –
-Link: Unity Package – Cinemachine
-Verwendungszweck: Cinemachine ist Unitys modulare Kamera-Framework. Wir nutzen es, um verschiedene Kameraperspektiven pro Rolle dynamisch zu steuern. Zum Beispiel eine Free Look Orbit Camera für den Piloten (Third-Person-View hinter dem Fahrzeug) und eine Virtual Camera für Geschützturm (die evtl. auf Schulter der Kanone sitzt oder ins First-Person-Zielfernrohr zoomt, wenn der Gunner aktiviert). Cinemachine ermöglicht es, zwischen solchen VirtualCams weich zu wechseln oder sogar mehrere gleichzeitig (z.B. Picture-in-Picture) darzustellen, falls nötig.
-Behalten/Anpassen: Wir integrieren Cinemachine komplett ins Projekt – es ist kostenlos und leichtgewichtig. Wichtig ist, dass jeder Client seine eigene Cinemachine Brain haben kann, die die jeweilige Perspektive steuert, ohne dass das Netzwerk das stören muss (Kamerabewegung ist lokal). Für Multi-Perspektive-Design könnten wir Cinemachine’s Priority/Blend-System nutzen: Wenn ein Spieler Gunner ist, hat die Turm-Kamera Prio, wechselt er zu Pilot, blendet es zur Fahrkamera, etc. Außerdem nutzen wir Cinemachine’s Screen Shake und Composer: z.B. bei Explosionen wackelt die Kamera schön (für Immersion) – Cinemachine macht das simpel via Noise. Falls wir unterschiedliche Role-UI haben, koppeln wir Kameras daran (Cinemachine kann an Targets folgen, z.B. sensorische Drohne?). Wir würden Cinemachine so anpassen, dass die Übergänge beim Rollentausch super schnell aber nicht störend sind (Blend-Duration evtl. 0 bei Wechsel, oder stylized kurzer Whip-Pan).
-Warum passend: Cinemachine ist inzwischen das Go-To für Unity-Kameras, weil es uns die komplexe Mathematik und das Feintuning von Kamerabewegungen abnimmt. Ein Redditor bringt es auf den Punkt: “Man sollte es ABSOLUT verwenden, es vereinfacht ALLES Kamera-bezogene.”. Für uns heißt das: Wir können cinematische Qualität erreichen (z.B. automatische Verfolgung des Fahrzeuges, sanfte Re-Zentrierung hinter dem Fahrzeug wenn nötig) ohne eigenes Coding. Multi-perspektivisch: Cinemachine erlaubt mehrere Rigs. Wir könnten sogar gleichzeitig verschiedene Perspektiven ausgeben (z.B. Splitscreen-Kameras oder kleine Fenster für Sensor-View). Allerdings wollen wir bewusst auf Splitscreen verzichten (Online hat jeder eigenen Screen, und intern haben wir “eine Welt-Kamera” die geteilt wird). Cinemachine unterstützt auch Cameras per player falls nötig; wir können aber auch einen Cinemachine Brain auf dem Fahrzeug haben und je nach dem, welche Rolle der lokale Spieler hat, die Virtuelle Kamera anpassen. Das gibt uns Flexibilität. Die starke Punkte: Verfolgerkamera mit ThirdPersonFollow für Pilot haben wir sogar schon im Snapshot mit Cinemachine parametriert – das Asset war ja in unserem Tech-Plan vorgesehen. Die Anpassbarkeit (Limits, Damping, Shoulder Offset etc.) ermöglicht uns, die perfekte Sicht einzustellen, damit das Fahrzeug steuern sich gut anfühlt. Insgesamt passt Cinemachine zu unserem modularen Ansatz (kein Hardcoding der Kamera). Es ist kostenloser “Swiss-Army-Knife” für Kameras und wird von Unity aktiv gepflegt – daher auf jeden Fall behalten.
-
-Shader & VFX für stilisierte düstere Welt
-
-Volumetric Fog & Mist 2 (Kronnect) –
-Link: Asset Store – Volumetric Fog & Mist 2
-Verwendungszweck: Dieses Asset liefert uns hochwertige volumetrische Nebel- und Lichteffekte in URP. Unsere Spielwelt soll voller Nebel, Lichtkegel und atmosphärischer Effekte sein – Volumetric Fog & Mist 2 ist dafür ideal. Es ist bekannt dafür, performant und komplett URP-kompatibel zu sein und wird von Unity selbst als empfohlene Lösung für Volumetric Lighting genannt. Wir nutzen es, um z.B. Bodennebel in Arenen zu haben, Lichtkegel von Scheinwerfern sichtbar zu machen und “Fog of War”-artige Effekte zu erzeugen (Asset unterstützt sogar dynamische Fog of War Painting).
-Behalten/Anpassen: Wir werden mehrere Fog Volumes platzieren, die Nebel in unseren Levels repräsentieren. Das Asset erlaubt unterschiedliche Dichten, Farben und animierte Turbulenzen – perfekt, um der Dunkelwelt Leben einzuhauchen. Funktionen wie Multiple Point Lights on Fog sind Gold wert: Mündungsfeuer oder Explosionen können den Nebel kurz erhellen, was megastylish wirkt. Wir behalten diese Features bei. Wir passen Profile an: z.B. ein dicker, schwerer Nebel in einer Sumpf-Arena vs. ein dünner Staub in Ruinen. Das Asset unterstützt ferner Fog Void (Löcher im Nebel) – könnten wir nutzen, um z.B. um das Fahrzeug herum durch Abwäre einen leichten Nebelfreien Bereich zu simulieren. Performance-Optimierungen wie Downscaling/Temporal Reprojection sind eingebaut, die wir bei Bedarf aktivieren. Was wir evtl. nicht brauchen: integriertes Fog of War Painting im Editor – wir generieren Level, daher setzen wir Fog voids eher via Code.
-Warum passend: Stimmung und Sichtbarkeit sind Schlüsselaspekte unserer Vision. Mit Volumetric Fog & Mist 2 erreichen wir AAA-würdige Nebeleffekte ohne Hardcore-Shader selbst schreiben zu müssen. Kronnect’s Asset ist bereits in vielen erfolgreichen Titeln im Einsatz und unterstützt URP komplett (Forward+ etc.). In unserer dunklen Welt wird dieses Asset die wenigen Lichtquellen sichtbar machen – z.B. das Streulicht von Neonröhren im Nebel oder Taschenlampenkegel. Das verstärkt sowohl Atmosphäre als auch Gameplay (man sieht z.B. Gegner-Silhouetten im Nebel, wenn sie eine Lichtquelle passieren). Alternativen wie Unitys eigenem HDRP Volumetrics haben wir nicht, da wir URP nutzen – hier schließt das Asset die Lücke. Zudem ist es hochgradig einstellbar und empfohlen von Unity für URP, was uns Vertrauen in Kompatibilität gibt. All das passt zur stilisierten düsteren Welt: Wir können sogar farbigen Nebel nutzen (vielleicht giftgrüner Bodennebel in Gift-Biom). Und dank Profile-System können wir die Nebelstimmung pro Arena randomisieren/variieren, was der Prozedural-Varianz dient. Kurz: Ohne Volumetric Fog würde unserer Dunkelwelt die Tiefe fehlen – mit dem Asset bekommen wir eindrucksvolle, unheimliche Atmosphäre nahezu plug&play.
-
-Cartoon FX Remaster (Bundle) –
-Link: Asset Store – Cartoon FX Remaster
-Verwendungszweck: Für stylisierte Partikeleffekte (Explosionen, Schüsse, Treffer, Magie) ist die Cartoon FX Serie von Jean Moreno legendär. Das Remaster-Pack liefert über 50 hochwertige, stilisierte Effekt-Prefabs: Explosionen, Rauch, Feuer, Mündungsfeuer, elektrische Entladungen usw.. Damit rüsten wir unser Spiel optisch enorm auf – jeder Schuss, jeder Treffer soll cool aussehen, aber nicht realistisch, sondern bewusst comicartig-leuchtend (Neon-Elemente im Dunkeln).
-Behalten/Anpassen: Wir integrieren das Pack und nutzen die optimierten Shaders darin, die für URP geeignet sind. Die Effekte sind vielseitig einstellbar – Farben können wir ans Farbschema (viel Neon-Pink/Blau vlt) anpassen, Größen skalieren für verschiedene Waffengrößen. Besonders toll: Cartoon FX kommt mit Dinge wie Camera Shake triggers und Lights in Effekten – so können Explosionen kurz die Umgebung beleuchten, was super in unser Dunkelheitskonzept passt. Wir würden unnötige Effekte (falls z.B. zu fröhliche Feuerwerk-Styles dabei sind, die tonal nicht passen) weglassen, aber das meiste ist generisch genug. Der Vorteil ist, dass die Effekte mobil-optimiert sind, also auf Performance getrimmt (gut auch für PC, da wir viele Partikel gleichzeitig haben können). Vielleicht erstellen wir aus dem Pack einige einzigartige Kombinationen (z.B. Explosion + Nebel + Funken als “Boss stirbt”-Effekt).
-Warum passend: Unser Art Style ist stylized, d.h. keine fotorealistischen Explosionen, sondern eher comicartig-knallige VFX. Cartoon FX Remaster ist genau dafür gemacht: hochqualitative stilisierte Spezialeffekte für nahezu alle Zwecke. Es deckt alles ab, was wir brauchen: Mündungsfeuer, Projektiltrails, Explosionen klein und groß, Treffer-Funken, Rauchwolken, Energie-Auren, etc. Damit sparen wir Wochen an VFX-Entwicklung und können trotzdem abwechslungsreiche Effekte bieten. Wichtig für uns: Die Effekte sind sofort URP-kompatibel (inklusive Distortion-Shaders und Glow). Außerdem laufen sie performant durch eigene Shader und brauchen wenig Aufwand zur Anpassung. Sie sind auf sowohl 2D als auch 3D anwendbar – wir nutzen sie in 3D. In dunkler Umgebung werden diese bunten Effekte richtig poppen und dem Spieler Feedback geben (z.B. ein Treffer erzeugt eine aufflackernde Explosion, damit man es sieht). Ein Zitat aus einem Review besagt, das Paket sei „perfekt für comic-artige Projekte“, mit Explosionen, Rauch, Feuer, Magie usw., ideal um sein Unity-Projekt wie ein Comic aussehen zu lassen. Genau das wollen wir. Das Pack hat sich bewährt und erspart uns, Dutzende Partikelsysteme manuell zu bauen. Summiert: Durch Cartoon FX wird unsere Welt lebendig – Schüsse und Skills sehen flashy aus, was dem Herzblut-Stil entspricht, den wir uns wünschen.
-
-Natürlich werden wir all diese Assets noch im Detail evaluieren und ggf. miteinander testen, um Kompatibilität zu sichern (v.a. NWH Vehicle Physics zusammen mit Entities-Netcode – das erfordert etwas Integration, oder wir nutzen es teils als Anhalt und portieren Parameter in ECS). Doch diese Auswahl stellt die besten ihrer Klasse dar, um unseren Vision rasch und auf hohem Qualitätsniveau umzusetzen. Jeder dieser Bausteine trägt dazu bei, dass unser mutiges Design (mehrspieler-ein-Fahrzeug-Chaos in düsterer Roguelite-Welt) technisch machbar und performant bleibt, ohne dass wir das Rad neu erfinden müssen. Wir setzen sie entschlossen ein, um ein stimmiges, mitreißendes Spielerlebnis zu bauen. Let’s gear up and bring this chaotic coop roguelite to life!
+# HTOWN Crew — IST-Dokumentation (2026-02-01)
+
+Diese Datei beschreibt den **aktuellen Ist-Zustand** des Projekts, nicht die Wunschliste.
+
+## 1) Projektstatus (Kurzfassung)
+- **Aktueller Kernmodus:** Crew-Coop auf **einem gemeinsamen Vehicle** mit 1–5 Seats (Pilot, Gunner, Power, Systems, Support).
+- **Solo-Ship Mode:** **1 Spieler = 1 Vehicle**, bis zu 5 Spieler pro Karte, reduzierte Stationslogik (Pilot + Gunner).
+- **Single-Modus:** 1 Client, Pilot + Gunner Input, keine Bots.
+
+## 2) Repo-Struktur (IST)
+- `client/` — Vite + Three.js Client, monolithisch in `client/src/main.ts`.
+- `server/` — Node + Colyseus + Express (Auth/Leaderboard/Matchmaking), Tick-Simulation.
+- `shared/` — gemeinsame Typen + JSON-Daten (Weapons, Enemies, Upgrades, StatusEffects, Combos).
+- `tests/e2e/` — Playwright UI/Visual-Smoke Tests.
+- `server/src/tests/` + `shared/src/tests/` — Vitest Unit/Integration Tests.
+- `assets/`, `client/public/assets/` — 3D/Audio Assets.
+
+## 3) Laufzeit-Modi (IST)
+- **crew (Standard):**
+  - `maxClients = 5`
+  - 1 gemeinsames Ship, 5 Seats
+  - Bots füllen fehlende Seats
+  - Seat-Swap aktiv
+- **solo (Solo-Ship):**
+  - `maxClients = 5`
+  - 1 Ship pro Spieler (`state.ships`)
+  - Seat immer `pilot` (Pilot + Gunner Input pro Client)
+  - Bots deaktiviert
+  - Seat-Swap deaktiviert
+- **single:**
+  - `maxClients = 1`
+  - Seat immer `pilot` (Pilot + Gunner Input)
+  - Bots deaktiviert
+  - Seat-Swap deaktiviert
+
+## 4) Client-Architektur (IST)
+**Datei:** `client/src/main.ts`
+- **Rendering:** Three.js (GLTFLoader, Lights, Sprites, Partikel-Sparks, Reticle, Radar, Minimap).
+- **Scene:**
+  - Ship, Enemies, Projectiles, Powerups, Stars, Cave-Umgebung (Clamp via `shared/caveMap`).
+- **Input & Controls:**
+  - Keyboard + Mouse, Gamepad, Touch-Sticks.
+  - Local input wird **sofort gerendert** (Smoothing) und gleichzeitig an Server gesendet.
+  - Gunner nutzt Pointer Lock + Aim-Vector.
+- **Networking:**
+  - Colyseus Client (`joinOrCreate`, `joinById`), State Sync via Schema-Patches.
+  - Client sendet nur Inputs; Server ist authoritative.
+- **UI/HUD:**
+  - Overlay (Login/Matchmaking), Seat-Panel, Crew-Overview, Debug/Settings/Stats.
+  - Seat-Fokus + Crew-Overview (70/30 Ziel, praktisch umgesetzt).
+
+**Mismatch zur README:** Client nutzt **Three.js**, nicht Phaser.
+
+## 5) Server-Architektur (IST)
+**Dateien:**
+- `server/src/index.ts` — Express API + Colyseus.
+- `server/src/rooms/GameRoom.ts` — authoritative Simulation + Tick (20Hz).
+- `server/src/systems/*` — Seat/Bot/Enemy/Ship/Upgrade.
+- `server/src/db.ts` — SQLite Persistence.
+
+**API (Express):**
+- Auth: `/auth/register`, `/auth/login`, `/auth/refresh`, `/auth/logout`.
+- Leaderboard: `/leaderboard/top`, `/leaderboard/me`.
+- Matchmake (Code): `/matchmake/create`, `/matchmake/join`.
+
+**Colyseus Room:**
+- `GameRoom` mit Schema-`GameState`.
+- `GameState`: `mode`, `ship` (crew/single), `ships` (solo).
+- Tick: `setSimulationInterval(..., 50)` → ~20 Hz.
+- **Authoritative Systems:** Ship, Enemies, Projectiles, Upgrades, Combos, Seats, Bots.
+- **Seat Swap:** Warnung + Grace + Stabilizer.
+- **Bots:** Einfache Heuristik (Prototyp-Qualität).
+
+## 6) Geteilte Datenmodelle (IST)
+**Dateien:** `shared/src/types.ts`, `shared/src/data/*.json`
+- `SeatType`: pilot/gunner/power/systems/support.
+- `GameMode`: crew/solo/single.
+- `PlayerInput`: Input-Payload (move/aim/power/systems/support).
+- `weapons.json`, `enemies.json`, `upgrades.json`, `statusEffects.json`, `combos.json`.
+- `caveMap.ts`: fixe Cave-Route + `clampToCave` (keine Prozeduralität).
+
+## 7) Systeme-Übersicht (IST + Status)
+**Client-Systeme**
+- Rendering (Three.js Scene, GLTF Assets): **vollständig**
+- Seat-UI & Crew-Overview: **vollständig**
+- Radar/Minimap: **vollständig**
+- Input (KB/Maus/Gamepad/Touch): **vollständig**
+- SFX/FX (Sparks, Flashes, Reticle): **vollständig**
+- Login/Matchmaking UI: **vollständig**
+- Debug/Settings/Stats Overlay: **vollständig**
+
+**Server-Systeme**
+- Room Lifecycle + Tick: **vollständig**
+- Solo-Ship Multi-Vehicle State + Targeting: **teilweise (Pilot + Gunner)**
+- Seat System (Zuweisung + Swap): **vollständig**
+- Bot System: **prototypisch**
+- Ship Movement + Power Rhythm: **vollständig**
+- Enemy Spawns + AI: **prototypisch, funktionsfähig**
+- Projectile System: **vollständig**
+- Upgrades (Seat-bound + Auto-Pick): **vollständig**
+- Combos (server-auth, data-driven): **vollständig**
+- Support/Systems Abilities: **vollständig**
+- Persistence (SQLite): **vollständig (basic)**
+
+**Stubs / fehlend**
+- Solo-Ship: **keine per-Ship Systems/Support/Combos** (reduced stations)
+- Prozedurale Level/ Biome-Rotation: **fehlend** (aktuell fixe Cave-Route)
+- Reconnect-Flow (Token-basierte Room-Rejoin): **teilweise**
+- Anti-Cheat / Input-Rate-Limits: **teilweise**
+
+## 8) Implizite Annahmen (IST)
+- **Crew/Single:** Ein einziges gemeinsames Ship pro Room.
+- **Solo:** Ship pro Player, Seat-Zuordnung bleibt `pilot`.
+- **Maximal 5 Seats** (hardcoded).
+- **Bots** übernehmen freie Seats.
+- **Input Payload enthält Seat** und wird serverseitig akzeptiert (jetzt geprüft).
+- **Client-UI ist seat-zentriert**, keine globale Spectator-UI.
+- **Assets/Gameplay** stark auf 3D/Three.js ausgelegt.
+
+## 9) Multiplayer-Readiness (IST)
+**Room Lifecycle**
+- Create: `/matchmake/create` (Auth) oder `joinOrCreate` (Quick Play).
+- Join: `/matchmake/join` → `joinById`.
+- Join validiert AccessToken serverseitig (`onAuth`).
+- Leave: `onLeave` markiert Player `connected=false`, Bots füllen.
+- Dispose: Colyseus Auto-Dispose (kein explizites `onDispose`).
+
+**State Sync**
+- ~20 Hz server tick; Colyseus patch-basierte State Sync.
+- **Payload wächst** mit Enemy/Projectile Count (keine Interest-Management).
+
+**Input Flow**
+- Client sendet `input` → Server prüft Seat-Zuordnung (Solo: Pilot/Gunner pro Spieler) → Tick verarbeitet.
+
+**Late Join**
+- Möglich: neuer Client erhält aktuelle State-Snapshot.
+
+**Disconnect / Reconnect**
+- Disconnect → Player bleibt 30s im State, Bots übernehmen Seat.
+- Rejoin möglich, aber **kein automatischer Reconnect-Token**.
+
+**Race Conditions / Limits**
+- Max Clients = 5 (crew/solo) / 1 (single).
+- Seat-Swap kann bei `lockSeat` (nur E2E) theoretisch Seat-Kollisionen erzeugen.
+
+## 10) UI/UX Audit (IST)
+**Global UI**
+- Header: Seat, Score, Wave, Timer, Input Debug.
+- Overlays: Login/Matchmaking, Settings, Stats, Debug.
+
+**Seat-spezifisch**
+- Pilot: Stick, Boost, Aim toggle, Speed/HB.
+- Gunner: Aim stick, Fire, Weapon select, Reticle.
+- Power: Sliders + Presets + Instability/Heat/Timing.
+- Systems: Ability buttons + Mode readout.
+- Support: Scan/Repair/Loot + Radar/Repair Window.
+
+**Auffälligkeiten**
+- UI ist funktionsreich, aber stark "Debug-lastig" (Input-State, Key-State, Debug-FAB).
+- Crew-Overview ist dicht; gute 70/30-Trennung, aber viele Mikrotexte.
+- Keine Trennung zwischen "Core HUD" und "Erweiterungs-UI" (z.B. Upgrades vs. Core).
+- Solo-Ship zeigt Allies als einfache Platzhalter + Minimap-Dots; Seat-UI bleibt crew-zentriert.
+
+**Empfehlungen (keine Redesigns)**
+- Debug-Anzeigen per Flag (prod vs dev) trennen.
+- Core HUD + Erweiterungen (Upgrades/Stats/Settings) klarer isolieren.
+- Seat-UI vorbereitet lassen für spätere Seat-spezifische HUD-Skins.
+
+## 11) Tests & Dev-Ergonomie (IST)
+**Vorhanden**
+- Unit-Tests: `server/src/tests/*` (Combos, Seats, Simulation, EnemySystem, etc.)
+- Shared Tests: `shared/src/tests/*`
+- Server-Join-Test: `server/src/tests/roomJoin.test.ts` (5 Clients, Solo-Ship, shipCount=5)
+- E2E (Playwright): Login, Seat UI, Visual Snapshots, Multiplayer 2-Client.
+
+**Lücken / dringend**
+- Kein Browser-Test für **5 reale Clients** gleichzeitig (nur serverseitig).
+- Kein Reconnect-Test (Drop + Rejoin).
+- Kein Load-Test für große Enemy/Projectile-Counts.
+
+**Minimaler Test-Plan (empfohlen)**
+- **Room Join (5 Clients):** Server-Join-Test (`roomJoin.test.ts`), `shipCount=5`.
+- **Movement Sync:** Pilot bewegt → andere Clients sehen Positionsänderung.
+- **Disconnect/Reconnect:** Client verlässt → Bot übernimmt → Rejoin mit gleichem UserId.
+
+## 12) Bekannte Risiken (IST)
+- **Solo-Ship reduziert:** keine per-Ship Systems/Support/Combos; Shared `systems`-State bleibt crew-orientiert.
+- **State Payload** wächst linear mit Enemy/Projectile Count (kein Interest Management).
+- **Reconnect** ist manuell; kein Token/Auto-Rejoin.
+- **README** nennt Phaser, Realität ist Three.js.
+
+## 12a) Fun-Kill Leitplanken (verankert)
+Quelle: `funkill.md` (Design-Guardrails, verbindlich fuer Reviews)
+- Pflicht-Perfektion ist tabu: Systeme muessen optional optimieren, nie ueberleben erzwingen.
+- UI muss in <0.5s begreifbar sein (Icons, Farben, Feedback) statt Zahlenwaende.
+- Fehler duerfen ineffizient sein, aber nie destruktiv (keine Guilt-Mechaniken).
+- Meta-Dominanz vermeiden: Sidegrades + Situationsstaerke statt linearer Power.
+- Keine Progression, die Skill ersetzt; Run-Start ist gleich, Power kommt aus Entscheidungen.
+- Chaos braucht Lesbarkeit (klare Ursache/Wirkung, kurze Combo-Feedbacks).
+- Systeme muessen Teamplay aktivieren, nicht ersetzen; Bots sind inferior.
+- Neue Systeme nur mit Eskalationskurve; muessen viele neue Spielsituationen erzeugen.
+
+## 13) Design-Alignment (Kurz)
+- Crew-Coop, Seat-Swap, Combos, Run-Endlos, Bots, Server-Auth → **im Code vorhanden**.
+- Solo-Ship (pro Spieler ein Vehicle) → **vorhanden (Baseline, reduced stations)**.
+- Prozedurale Biome/Events → **nicht vorhanden**.
+
+---
+
+Dieses Dokument wird bei Architekturänderungen aktualisiert.

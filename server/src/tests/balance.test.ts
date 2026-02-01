@@ -37,7 +37,17 @@ describe('Balance checks', () => {
       rng: () => 0.5,
       simulationTime: 0,
       damageReduction: 1,
-      spawnProjectile: vi.fn()
+      spawnProjectile: vi.fn(),
+      getEnemyTargets() {
+        return [{ id: 'crew', ship: this.state.ship }];
+      },
+      getSpawnAnchor() {
+        return {
+          x: this.state.ship.position.x,
+          y: this.state.ship.position.y,
+          z: this.state.ship.position.z
+        };
+      }
     };
     room.state.wave = 5;
     const system = new EnemySystem(room as never);
@@ -53,7 +63,17 @@ describe('Balance checks', () => {
       rng: () => 0.5,
       simulationTime: 0,
       damageReduction: 1,
-      spawnProjectile: vi.fn()
+      spawnProjectile: vi.fn(),
+      getEnemyTargets() {
+        return [{ id: 'crew', ship: this.state.ship }];
+      },
+      getSpawnAnchor() {
+        return {
+          x: this.state.ship.position.x,
+          y: this.state.ship.position.y,
+          z: this.state.ship.position.z
+        };
+      }
     };
     room.state.wave = 4;
     const system = new EnemySystem(room as never);

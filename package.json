@@ -6,14 +6,21 @@
   "workspaces": [
     "client",
     "server",
-    "shared"
+    "shared",
+    "apps/admin-web",
+    "apps/admin-api",
+    "packages/shared"
   ],
   "scripts": {
-    "dev": "concurrently -k \"pnpm --filter server dev\" \"pnpm --filter client dev\"",
-    "build": "pnpm --filter shared build && pnpm --filter server build && pnpm --filter client build",
-    "test": "pnpm --filter shared test && pnpm --filter server test",
+    "dev": "concurrently -k \"npm run dev -w apps/admin-api\" \"npm run dev -w apps/admin-web\"",
+    "dev:admin": "concurrently -k \"npm run dev -w apps/admin-api\" \"npm run dev -w apps/admin-web\"",
+    "dev:game": "concurrently -k \"npm run dev -w server\" \"npm run dev -w client\"",
+    "build": "npm run build -w packages/shared && npm run build -w apps/admin-api && npm run build -w apps/admin-web",
+    "build:game": "npm run build -w shared && npm run build -w server && npm run build -w client",
+    "test": "npm run test -w apps/admin-api && npm run test -w packages/shared",
+    "test:game": "npm run test -w shared && npm run test -w server",
     "test:e2e": "playwright test",
-    "lint": "pnpm -r lint --if-present"
+    "lint": "npm -ws lint --if-present"
   },
   "devDependencies": {
     "@playwright/test": "^1.58.1",
@@ -21,7 +28,6 @@
     "eslint": "^8.57.0",
     "prettier": "^3.2.5",
     "typescript": "^5.4.5",
-    "vitest": "^1.5.2",
-    "@playwright/test": "^1.58.1"
+    "vitest": "^1.5.2"
   }
 }
