@@ -522,6 +522,7 @@ let lobbyActionButtons: HTMLButtonElement[] = [];
 let lobbyInputs: HTMLInputElement[] = [];
 let authActionButtons: HTMLButtonElement[] = [];
 let authInputs: HTMLInputElement[] = [];
+let refreshPromise: Promise<boolean> | null = null;
 
 function setLobbyBusy(busy: boolean, message?: string) {
   lobbyActionButtons.forEach((button) => {
@@ -545,6 +546,54 @@ function setAuthBusy(busy: boolean, message?: string) {
   if (typeof message === 'string') {
     loginStatus.textContent = message;
   }
+}
+
+function updateAuthHeaders(options: RequestInit) {
+  const headers = new Headers(options.headers ?? {});
+  if (state.accessToken) {
+    headers.set('Authorization', `Bearer ${state.accessToken}`);
+  }
+  return { ...options, headers };
+}
+
+async function refreshSession() {
+  if (refreshPromise) return refreshPromise;
+  if (!state.refreshToken) return false;
+  refreshPromise = (async () => {
+    try {
+      const response = await fetch(`${serverUrl}/auth/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refreshToken: state.refreshToken })
+      });
+      if (!response.ok) {
+        return false;
+      }
+      const data = await response.json();
+      if (!data?.accessToken || !data?.refreshToken) return false;
+      state.accessToken = data.accessToken;
+      state.refreshToken = data.refreshToken;
+      localStorage.setItem('accessToken', state.accessToken);
+      localStorage.setItem('refreshToken', state.refreshToken);
+      updateDebugMeta();
+      return true;
+    } catch {
+      return false;
+    }
+  })();
+  const result = await refreshPromise;
+  refreshPromise = null;
+  if (!result) {
+    state.accessToken = '';
+    state.refreshToken = '';
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
+    updateDebugMeta();
+    if (!e2eVisualsEnabled) {
+      setOverlayScreen('login');
+    }
+  }
+  return result;
 }
 
 function updateRoomLobby() {
@@ -1722,7 +1771,8 @@ async function requestJson(
   endpoint: string,
   options: RequestInit,
   label: string,
-  logOptions?: { redactBody?: boolean }
+  logOptions?: { redactBody?: boolean },
+  didRefresh?: boolean
 ) {
   const url = `${serverUrl}${endpoint}`;
   const started = performance.now();
@@ -1750,6 +1800,12 @@ async function requestJson(
   }
   const elapsed = Math.round(performance.now() - started);
   addLog(response.ok ? 'info' : 'error', `← ${label} ${response.status} ${response.statusText} (${elapsed}ms)`, data);
+  if (!response.ok && !didRefresh && (response.status === 401 || response.status === 403)) {
+    const refreshed = await refreshSession();
+    if (refreshed) {
+      return requestJson(endpoint, updateAuthHeaders(options), label, logOptions, true);
+    }
+  }
   return { response, data };
 }
 
@@ -2119,7 +2175,7 @@ function renderLoadout() {
     : `<div class="loadout-empty">No intel yet.</div>`;
 }
 
-async function connect(roomId?: string, modeHint?: GameMode | null) {
+async function connect(roomId?: string, modeHint?: GameMode | null, didRefresh?: boolean) {
   if (!state.accessToken) {
     addLog('warn', 'Connect blocked: missing access token.');
     if (!e2eVisualsEnabled) {
@@ -2164,6 +2220,14 @@ async function connect(roomId?: string, modeHint?: GameMode | null) {
     state.room = roomId ? await client.joinById(roomId, options) : await client.joinOrCreate('game', options);
   } catch (error) {
     addLog('error', 'Room connect failed', error);
+    const message = error instanceof Error ? error.message : String(error);
+    if (didRefresh || (!message.toLowerCase().includes('jwt') && !message.toLowerCase().includes('token'))) {
+      throw error;
+    }
+    const refreshed = await refreshSession();
+    if (refreshed) {
+      return connect(roomId, modeHint, true);
+    }
     throw error;
   } finally {
     isConnecting = false;
