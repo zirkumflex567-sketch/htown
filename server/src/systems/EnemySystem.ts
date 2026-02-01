@@ -2,6 +2,8 @@ import { clampToCave, enemies as enemyDefs, randomInt, randomRange } from '@htow
 import { EnemyState } from '../rooms/schema/GameState';
 import type { GameRoom } from '../rooms/GameRoom';
 
+const MAX_ENEMIES = 90;
+
 export class EnemySystem {
   private spawnTimer = 0;
   private lastSpitAt = new Map<string, number>();
@@ -352,7 +354,16 @@ export class EnemySystem {
 
   spawnWave() {
     const wave = this.room.state.wave;
-    const count = 6 + Math.min(wave * 2, 24);
+    const current = this.room.state.enemies.length;
+    const capacity = Math.max(0, MAX_ENEMIES - current);
+    if (capacity === 0) {
+      this.room.state.wave += 1;
+      return;
+    }
+    const bosses = enemyDefs.filter((entry) => entry.behavior === 'boss');
+    const shouldSpawnBoss = wave % 5 === 0 && bosses.length > 0 && capacity > 0;
+    const bossSlots = shouldSpawnBoss ? 1 : 0;
+    const count = Math.min(capacity - bossSlots, 6 + Math.min(wave * 2, 24));
     const enemyPool = enemyDefs.filter((entry) => entry.behavior !== 'boss');
     for (let i = 0; i < count; i++) {
       const enemyDef = enemyPool[randomInt(this.room.rng, 0, enemyPool.length - 1)];
@@ -366,20 +377,17 @@ export class EnemySystem {
       enemy.position.z = spawn.z;
       this.room.state.enemies.push(enemy);
     }
-    if (wave % 5 === 0) {
-      const bosses = enemyDefs.filter((entry) => entry.behavior === 'boss');
-      if (bosses.length) {
-        const bossDef = bosses[(Math.floor(wave / 5) + bosses.length) % bosses.length];
-        const boss = new EnemyState();
-        boss.id = `${bossDef.id}-${Date.now()}`;
-        boss.kind = bossDef.id;
-        boss.health = bossDef.health;
-        const spawn = this.pickSpawnPosition();
-        boss.position.x = spawn.x;
-        boss.position.y = spawn.y;
-        boss.position.z = spawn.z;
-        this.room.state.enemies.push(boss);
-      }
+    if (shouldSpawnBoss) {
+      const bossDef = bosses[(Math.floor(wave / 5) + bosses.length) % bosses.length];
+      const boss = new EnemyState();
+      boss.id = `${bossDef.id}-${Date.now()}`;
+      boss.kind = bossDef.id;
+      boss.health = bossDef.health;
+      const spawn = this.pickSpawnPosition();
+      boss.position.x = spawn.x;
+      boss.position.y = spawn.y;
+      boss.position.z = spawn.z;
+      this.room.state.enemies.push(boss);
     }
     this.room.state.wave += 1;
   }

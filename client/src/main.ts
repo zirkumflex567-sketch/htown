@@ -2685,10 +2685,24 @@ addLog('info', 'Debug console ready.');
 
 const arena = document.getElementById('arena')!;
 arena.tabIndex = 0;
+
+function isUiElementTarget(target: EventTarget | null) {
+  if (!(target instanceof HTMLElement)) return false;
+  return Boolean(target.closest('input, textarea, select, button, [contenteditable]'));
+}
+
+function shouldFocusArena(target: EventTarget | null) {
+  if (!target || !(target instanceof HTMLElement)) return false;
+  if (isUiElementTarget(target)) return false;
+  if (arena.contains(target)) return true;
+  return target === document.body || target === document.documentElement;
+}
+
 arena.addEventListener('pointerdown', () => {
   arena.focus();
 });
-document.body.addEventListener('pointerdown', () => {
+document.body.addEventListener('pointerdown', (event) => {
+  if (!shouldFocusArena(event.target)) return;
   if (document.activeElement !== arena) arena.focus();
 });
 arena.addEventListener('click', () => {
@@ -2806,6 +2820,7 @@ window.addEventListener('mousemove', (event) => {
 });
 
 window.addEventListener('mousedown', (event) => {
+  if (document.pointerLockElement !== arena && !isArenaTarget(event)) return;
   if (state.seat !== 'gunner' && !isSoloControlMode()) return;
   if (event.button === 0) {
     localActions.gunner.fire = true;
@@ -2819,7 +2834,10 @@ window.addEventListener('mousedown', (event) => {
 });
 
 window.addEventListener('mouseup', (event) => {
-  if (state.seat !== 'gunner') return;
+  if (document.pointerLockElement !== arena && !isArenaTarget(event) && !localActions.gunner.fire && !localActions.gunner.altFire) {
+    return;
+  }
+  if (state.seat !== 'gunner' && !isSoloControlMode()) return;
   if (event.button === 0) {
     localActions.gunner.fire = false;
     gunnerFire.dataset.active = 'false';

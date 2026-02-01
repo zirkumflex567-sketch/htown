@@ -136,6 +136,7 @@ export class ShipSystem {
       const maxSteer = 0.6;
       moveX = Math.max(-maxSteer, Math.min(maxSteer, moveX));
     }
+    const inputActive = Math.hypot(moveX, moveY) > 0.05 || Math.abs(liftInput) > 0.05;
     ship.velocity.x += moveX * accel * delta;
     ship.velocity.y += moveY * accel * delta;
     const verticalAccel = (12 + effectiveEngines * 22 + pilotSpeedBonus * 12) * comboSpeed;
@@ -171,6 +172,14 @@ export class ShipSystem {
       if (this.room.simulationTime - context.lastWallHitAt > 400) {
         context.onWallHit(2);
         context.setLastWallHitAt(this.room.simulationTime);
+      }
+    }
+    if (clamp.outside && inputActive) {
+      const speedAfterClamp = Math.hypot(ship.velocity.x, ship.velocity.y, ship.velocity.z);
+      if (speedAfterClamp < 6) {
+        const nudge = 18;
+        ship.velocity.x += clamp.tangentX * nudge;
+        ship.velocity.y += clamp.tangentY * nudge;
       }
     }
 
