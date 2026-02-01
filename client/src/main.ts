@@ -2185,7 +2185,8 @@ async function connect(roomId?: string, modeHint?: GameMode | null, didRefresh?:
   }
   if (isConnecting) return;
   isConnecting = true;
-  setLobbyBusy(true, 'Connecting...');
+  const connectingMessage = roomStatus.textContent ? undefined : 'Connecting...';
+  setLobbyBusy(true, connectingMessage);
   try {
     if (state.room) {
       try {

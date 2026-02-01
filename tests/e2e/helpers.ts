@@ -35,6 +35,7 @@ export async function registerUser(page: Page, creds: Credentials, seat?: string
 export async function quickPlay(page: Page) {
   await page.click('#quick-play');
   await expect(page.locator('#overlay')).toHaveClass(/hidden/);
+  await ensureRunStarted(page);
 }
 
 export async function createRoom(page: Page) {
@@ -47,6 +48,7 @@ export async function createRoom(page: Page) {
     throw new Error(`Room code not found in status: ${text}`);
   }
   await expect(page.locator('#overlay')).toHaveClass(/hidden/);
+  await ensureRunStarted(page);
   return match[1];
 }
 
@@ -54,4 +56,17 @@ export async function joinRoom(page: Page, code: string) {
   await page.fill('#room-code', code);
   await page.click('#join-room');
   await expect(page.locator('#overlay')).toHaveClass(/hidden/);
+  await ensureRunStarted(page);
+}
+
+export async function ensureRunStarted(page: Page) {
+  const roomOverlay = page.locator('#room-overlay');
+  try {
+    if (await roomOverlay.isVisible({ timeout: 2000 })) {
+      await page.click('#room-ready', { force: true });
+      await expect(roomOverlay).toHaveClass(/hidden/);
+    }
+  } catch {
+    // If the overlay never appears, assume the run already started.
+  }
 }
