@@ -3407,6 +3407,11 @@ function getRemoteShipStates() {
   return remotes;
 }
 
+function safeVector2(value: any, fallback: { x: number; y: number }) {
+  if (!value || typeof value.x !== 'number' || typeof value.y !== 'number') return fallback;
+  return { x: value.x, y: value.y };
+}
+
 function updateSeatPanels() {
   if (!state.room) return;
   if (getRoomMode() === 'solo') {
@@ -3987,9 +3992,7 @@ function updateScene(dt: number) {
     isRunning
       ? state.seat === 'pilot'
         ? pilotAxis
-        : pilotInput?.move
-          ? { x: pilotInput.move.x, y: pilotInput.move.y }
-          : { x: 0, y: 0 }
+        : safeVector2(pilotInput?.move, { x: 0, y: 0 })
       : { x: 0, y: 0 };
   const pilotLift = isRunning
     ? state.seat === 'pilot'
@@ -4007,9 +4010,7 @@ function updateScene(dt: number) {
     isRunning
       ? state.seat === 'gunner' || isSoloControlMode()
         ? gunnerAxis
-        : gunnerInput?.aim
-          ? { x: gunnerInput.aim.x, y: gunnerInput.aim.y }
-          : { x: 1, y: 0 }
+        : safeVector2(gunnerInput?.aim, { x: 1, y: 0 })
       : { x: 1, y: 0 };
   const gunnerFiring = isRunning ? Boolean(gunnerInput?.fire) : false;
 
