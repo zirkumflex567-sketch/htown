@@ -18,6 +18,7 @@ const e2eSeatParam = e2eMode ? urlParams.get('e2eSeat') : null;
 const e2eSeat = e2eSeatParam && ['pilot', 'gunner', 'power', 'systems', 'support'].includes(e2eSeatParam)
   ? (e2eSeatParam as SeatType)
   : null;
+const defaultMode: GameMode = e2eSeat ? 'crew' : 'solo';
 const serverUrl = import.meta.env.VITE_SERVER_URL ?? `http://${defaultServerHost}:2567`;
 const adminUrl = import.meta.env.VITE_ADMIN_URL ?? `${window.location.origin}/admin`;
 const client = new Client(serverUrl.replace('http', 'ws'));
@@ -25,7 +26,7 @@ const client = new Client(serverUrl.replace('http', 'ws'));
 const state = {
   room: null as null | import('colyseus.js').Room,
   seat: 'pilot' as SeatType,
-  mode: 'crew' as GameMode,
+  mode: defaultMode,
   userEmail: localStorage.getItem('userEmail') ?? '',
   accessToken: localStorage.getItem('accessToken') ?? '',
   refreshToken: localStorage.getItem('refreshToken') ?? '',
@@ -46,6 +47,7 @@ app.innerHTML = `
             <div class="title">HTOWN CREW</div>
             <div class="status">
               <span id="seat-label">You are: PILOT</span>
+              <span id="mode-label">Mode: Fleet</span>
               <span id="score">Score 0</span>
               <span id="wave">Wave 1</span>
               <span id="timer">00:00</span>
@@ -183,9 +185,9 @@ app.innerHTML = `
         <div class="overlay-screen" data-screen="mode">
           <h2>Mode Selection</h2>
           <div class="mode-select">
-            <label><input type="radio" name="game-mode" value="solo" /> Solo Ships</label>
+            <label><input type="radio" name="game-mode" value="solo" checked /> Fleet (5 Ships)</label>
             <label><input type="radio" name="game-mode" value="single" /> Solo Control</label>
-            <label><input type="radio" name="game-mode" value="crew" checked /> Crew Seats</label>
+            <label><input type="radio" name="game-mode" value="crew" /> Crew Seats</label>
           </div>
           <div class="actions">
             <button id="mode-back">Back</button>
@@ -390,6 +392,7 @@ const swapFlash = document.getElementById('swap-flash')!;
 const swapBanner = document.getElementById('swap-banner')!;
 const upgrade = document.getElementById('upgrade')!;
 const seatLabel = document.getElementById('seat-label')!;
+const modeLabel = document.getElementById('mode-label')!;
 const seatIndicator = document.getElementById('seat-indicator')!;
 const pilotSeatLabel = document.getElementById('pilot-seat')!;
 const gunnerSeatLabel = document.getElementById('gunner-seat')!;
@@ -538,7 +541,7 @@ type OverlayScreen = 'login' | 'menu' | 'mode' | 'lobby';
 
 const overlayModeLabels: Record<GameMode, string> = {
   crew: 'Crew Seats',
-  solo: 'Solo Ships',
+  solo: 'Fleet (5 Ships)',
   single: 'Solo Control'
 };
 
@@ -699,6 +702,34 @@ function updateRoomLobby() {
 
 function updateLobbyModeLabel() {
   lobbyModeLabel.textContent = overlayModeLabels[state.mode] ?? state.mode;
+}
+
+function countShips(ships: any) {
+  if (!ships) return 0;
+  if (typeof ships.size === 'number') return ships.size;
+  if (Array.isArray(ships)) return ships.length;
+  if (typeof ships.forEach === 'function') {
+    let count = 0;
+    ships.forEach(() => {
+      count += 1;
+    });
+    return count;
+  }
+  return 0;
+}
+
+function updateModeLabel() {
+  const roomState = state.room?.state as { mode?: GameMode; ships?: any } | null;
+  const mode = roomState?.mode ?? state.mode;
+  document.body.dataset.mode = mode;
+  const baseLabel = overlayModeLabels[mode] ?? mode;
+  if (mode === 'solo') {
+    const shipCount = countShips(roomState?.ships);
+    const suffix = shipCount ? ` ${shipCount}/5` : '';
+    modeLabel.textContent = `Mode: ${baseLabel}${suffix}`;
+    return;
+  }
+  modeLabel.textContent = `Mode: ${baseLabel}`;
 }
 
 function syncModeInputs() {
@@ -2283,6 +2314,7 @@ async function connect(roomId?: string, modeHint?: GameMode | null, didRefresh?:
   overlay.classList.add('hidden');
   updateDebugMeta();
   updateRoomLobby();
+  updateModeLabel();
   focus3dView();
   state.room.onError((code, message) => {
     addLog('error', 'Room error', { code, message });
@@ -2310,12 +2342,14 @@ async function connect(roomId?: string, modeHint?: GameMode | null, didRefresh?:
     lastStateAt = now;
     renderLoadout();
     updateRoomLobby();
+    updateModeLabel();
   });
   const roomMode = (state.room.state as { mode?: GameMode }).mode;
   if (roomMode) {
     state.mode = roomMode;
     updateLobbyModeLabel();
     syncModeInputs();
+    updateModeLabel();
   }
   if (typeof state.room.state.listen === 'function') {
     state.room.state.listen('mode', (value) => {
@@ -2323,6 +2357,7 @@ async function connect(roomId?: string, modeHint?: GameMode | null, didRefresh?:
         state.mode = value as GameMode;
         updateLobbyModeLabel();
         syncModeInputs();
+        updateModeLabel();
       }
     });
     state.room.state.listen('phase', (value) => {
@@ -2645,6 +2680,7 @@ browseRoomsButton.addEventListener('click', async () => {
 
 updateDebugMeta();
 syncAdminButton();
+updateModeLabel();
 addLog('info', 'Debug console ready.');
 
 const arena = document.getElementById('arena')!;

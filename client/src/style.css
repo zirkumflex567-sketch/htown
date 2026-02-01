@@ -307,6 +307,10 @@ body[data-hand='left'] .panel.right {
   gap: 16px;
 }
 
+body[data-mode='solo']:not(.seat-expanded) .seat-layout {
+  display: none;
+}
+
 .seat-focus {
   flex: 1.7;
   display: flex;

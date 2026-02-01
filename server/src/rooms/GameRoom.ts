@@ -96,6 +96,7 @@ export class GameRoom extends Room<GameState> {
   private sessionToPlayer = new Map<string, string>();
   private projectileCounter = 0;
   private gunnerHeat = 0;
+  private soloBotTarget = 5;
   private runLoadout: RunLoadout | null = null;
   private revealedWeapons = 0;
   private revealedUpgrades = 0;
@@ -238,6 +239,9 @@ export class GameRoom extends Room<GameState> {
     }
     if (this.mode === 'solo') {
       this.ensureSoloShip(playerId);
+      if (this.state.phase === 'running') {
+        this.syncSoloBots();
+      }
     } else {
       this.refreshBots();
     }
@@ -264,6 +268,9 @@ export class GameRoom extends Room<GameState> {
           this.lastBoostByShip.delete(playerId);
           this.lastHandbrakeByShip.delete(playerId);
           this.gunnerHeatByShip.delete(playerId);
+          if (this.state.phase === 'running') {
+            this.syncSoloBots();
+          }
         } else {
           this.refreshBots();
         }
@@ -1344,6 +1351,55 @@ export class GameRoom extends Room<GameState> {
     this.rollRunLoadout();
   }
 
+  private syncSoloBots() {
+    if (this.mode !== 'solo') return;
+    const humanIds = new Set<string>();
+    const existingBots: string[] = [];
+    this.state.players.forEach((player) => {
+      if (player.isBot && player.id.startsWith('bot-solo-')) {
+        existingBots.push(player.id);
+      } else if (!player.isBot) {
+        humanIds.add(player.id);
+      }
+    });
+    const desiredBotCount = Math.max(0, this.soloBotTarget - humanIds.size);
+    existingBots.sort();
+
+    // Remove extra bots.
+    for (let i = desiredBotCount; i < existingBots.length; i += 1) {
+      const id = existingBots[i];
+      this.state.players.delete(id);
+      this.state.ships.delete(id);
+      this.soloInputs.delete(id);
+      this.lastWallHitByShip.delete(id);
+      this.lastShipPosById.delete(id);
+      this.lastBoostByShip.delete(id);
+      this.lastHandbrakeByShip.delete(id);
+      this.gunnerHeatByShip.delete(id);
+    }
+
+    // Add missing bots.
+    const used = new Set<string>([...humanIds, ...existingBots.slice(0, desiredBotCount)]);
+    let index = 1;
+    while (used.size - humanIds.size < desiredBotCount) {
+      const id = `bot-solo-${index}`;
+      index += 1;
+      if (used.has(id)) continue;
+      used.add(id);
+      let player = this.state.players.get(id);
+      if (!player) {
+        player = new PlayerState();
+        player.id = id;
+        player.seat = 'pilot';
+        player.isBot = true;
+        player.connected = true;
+        player.ready = false;
+        this.state.players.set(id, player);
+      }
+      this.ensureSoloShip(id);
+    }
+  }
+
   clearSeatInputs() {
     this.inputs.clear();
   }
@@ -1360,7 +1416,11 @@ export class GameRoom extends Room<GameState> {
       player.ready = false;
     }
     this.resetRunState(true);
-    this.refreshBots();
+    if (this.mode === 'solo') {
+      this.syncSoloBots();
+    } else {
+      this.refreshBots();
+    }
   }
 
   refreshBots() {
