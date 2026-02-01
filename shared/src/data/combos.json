@@ -1,5 +1,8 @@
 [
   {"id":"execution","name":"Execution Combo","windowMs":1500,"cooldownMs":5000,"effects":["damageBoost","heatReset","visionPulse"]},
   {"id":"momentum","name":"Momentum Surge","windowMs":1200,"cooldownMs":6000,"effects":["speedBoost","trailDamage","driftControl"]},
-  {"id":"stabilization","name":"Perfect Stabilization","windowMs":700,"cooldownMs":8000,"effects":["hullRegen","cleanse","scoreBoost"]}
+  {"id":"stabilization","name":"Perfect Stabilization","windowMs":700,"cooldownMs":8000,"effects":["hullRegen","cleanse","scoreBoost"]},
+  {"id":"shockchain","name":"Shock Chain","windowMs":1200,"cooldownMs":7000,"effects":["chainLightning","stunBurst"]},
+  {"id":"toxicloud","name":"Toxic Cloud","windowMs":1300,"cooldownMs":8000,"effects":["poisonBurst","slowField"]},
+  {"id":"piercingrun","name":"Piercing Run","windowMs":1200,"cooldownMs":7000,"effects":["piercingShots","boomerangShots"]}
 ]

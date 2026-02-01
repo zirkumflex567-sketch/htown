@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
 import { Client } from 'colyseus.js';
-import { caveBaseRadius, cavePath, mulberry32 } from '@htown/shared';
+import { caveBaseRadius, cavePath, mulberry32, weapons as weaponDefs } from '@htown/shared';
 import type { PlayerInput, SeatType } from '@htown/shared';
 
 const defaultServerHost = window.location.hostname || 'localhost';
@@ -24,11 +24,12 @@ const client = new Client(serverUrl.replace('http', 'ws'));
 const state = {
   room: null as null | import('colyseus.js').Room,
   seat: 'pilot' as SeatType,
+  mode: 'crew' as 'crew' | 'single',
   accessToken: localStorage.getItem('accessToken') ?? '',
   refreshToken: localStorage.getItem('refreshToken') ?? '',
   playerId: '' as string,
   inputs: new Map<SeatType, PlayerInput>(),
-  weapons: ['MG', 'Cannon', 'Rocket'],
+  weapons: weaponDefs.map((weapon) => weapon.name),
   lastError: '' as string
 };
 
@@ -147,13 +148,19 @@ app.innerHTML = `
           <button id="register">Register</button>
         </div>
         <h3>Matchmaking</h3>
+        <div class="mode-select">
+          <label><input type="radio" name="game-mode" value="single" /> Solo Control</label>
+          <label><input type="radio" name="game-mode" value="crew" checked /> Crew Seats</label>
+        </div>
         <input type="text" id="room-code" placeholder="Room Code" />
         <div class="actions">
           <button id="quick-play">Quick Play</button>
           <button id="create-room">Create Room</button>
           <button id="join-room">Join Room</button>
+          <button id="browse-rooms">Browse Rooms</button>
         </div>
         <div class="room-status" id="room-status"></div>
+        <div class="room-list" id="room-list"></div>
       </div>
     </div>
     <button class="debug-fab" id="debug-fab" title="Toggle debug (\` or Ctrl+D)">Debug</button>
@@ -219,6 +226,8 @@ app.innerHTML = `
               <div class="keybind-row"><span>Pilot Reverse</span><button data-bind="pilot.brake">S</button></div>
               <div class="keybind-row"><span>Pilot Left</span><button data-bind="pilot.left">A</button></div>
               <div class="keybind-row"><span>Pilot Right</span><button data-bind="pilot.right">D</button></div>
+              <div class="keybind-row"><span>Pilot Ascend</span><button data-bind="pilot.ascend">R</button></div>
+              <div class="keybind-row"><span>Pilot Descend</span><button data-bind="pilot.descend">F</button></div>
               <div class="keybind-row"><span>Boost</span><button data-bind="pilot.boost">Shift</button></div>
               <div class="keybind-row"><span>Handbrake</span><button data-bind="pilot.handbrake">Space</button></div>
               <div class="keybind-row"><span>Gunner Fire</span><button data-bind="gunner.fire">Mouse1</button></div>
@@ -862,9 +871,12 @@ function setSeat(seat: SeatType) {
     keyState.brake = false;
     keyState.left = false;
     keyState.right = false;
+    keyState.ascend = false;
+    keyState.descend = false;
     keyState.boost = false;
     keyState.handbrake = false;
     pilotAxis = { x: 0, y: 0 };
+    pilotLiftAxis = 0;
     if (pilotAimActive) {
       pilotAimActive = false;
       if (pilotAimButton) {
@@ -924,6 +936,7 @@ const gunnerStick = document.getElementById('gunner-stick')!;
 const gunnerFire = document.getElementById('gunner-fire')! as HTMLButtonElement;
 
 let pilotAxis = { x: 0, y: 0 };
+let pilotLiftAxis = 0;
 let gunnerAxis = { x: 1, y: 0 };
 const localActions = {
   pilot: {
@@ -931,7 +944,9 @@ const localActions = {
     brake: 0,
     steer: 0,
     handbrake: false,
-    boost: false
+    boost: false,
+    ascend: false,
+    descend: false
   },
   gunner: {
     aimYaw: 0,
@@ -961,6 +976,8 @@ type KeybindAction =
   | 'pilot.brake'
   | 'pilot.left'
   | 'pilot.right'
+  | 'pilot.ascend'
+  | 'pilot.descend'
   | 'pilot.boost'
   | 'pilot.handbrake'
   | 'gunner.fire'
@@ -973,6 +990,8 @@ const defaultKeybinds: Record<KeybindAction, string> = {
   'pilot.brake': 'KeyS',
   'pilot.left': 'KeyA',
   'pilot.right': 'KeyD',
+  'pilot.ascend': 'KeyR',
+  'pilot.descend': 'KeyF',
   'pilot.boost': 'ShiftLeft',
   'pilot.handbrake': 'Space',
   'gunner.fire': 'Mouse0',
@@ -985,7 +1004,9 @@ const altKeybinds: Partial<Record<KeybindAction, string[]>> = {
   'pilot.throttle': ['ArrowUp'],
   'pilot.brake': ['ArrowDown'],
   'pilot.left': ['ArrowLeft'],
-  'pilot.right': ['ArrowRight']
+  'pilot.right': ['ArrowRight'],
+  'pilot.ascend': ['PageUp'],
+  'pilot.descend': ['PageDown']
 };
 
 function loadKeybinds() {
@@ -1076,9 +1097,11 @@ function updatePilotAxisFromActions() {
 
 function sendPilotInput() {
   updatePilotAxisFromActions();
+  pilotLiftAxis = (localActions.pilot.ascend ? 1 : 0) - (localActions.pilot.descend ? 1 : 0);
   sendInput({
     seat: 'pilot',
     move: pilotAxis,
+    lift: pilotLiftAxis,
     boost: localActions.pilot.boost,
     throttle: localActions.pilot.throttle,
     brake: localActions.pilot.brake,
@@ -1127,11 +1150,13 @@ function applyGamepadInputs() {
     localActions.pilot.brake = brakeTrigger > 0.05 ? brakeTrigger : Math.max(0, -stickY);
     localActions.pilot.handbrake = pad.buttons[0]?.pressed ?? false;
     localActions.pilot.boost = pad.buttons[1]?.pressed ?? false;
+    localActions.pilot.ascend = pad.buttons[4]?.pressed ?? false;
+    localActions.pilot.descend = pad.buttons[5]?.pressed ?? false;
     pilotBoost.dataset.active = localActions.pilot.boost ? 'true' : 'false';
     sendPilotInput();
   }
 
-  if (state.seat === 'gunner') {
+  if (state.seat === 'gunner' || state.mode === 'single') {
     const aimX = pad.axes[2] ?? 0;
     const aimY = pad.axes[3] ?? 0;
     if (Math.hypot(aimX, aimY) > 0.15) {
@@ -1205,6 +1230,9 @@ pilotAimButton.addEventListener('click', () => {
     localActions.pilot.steer = 0;
     localActions.pilot.throttle = 0;
     localActions.pilot.brake = 0;
+    localActions.pilot.ascend = false;
+    localActions.pilot.descend = false;
+    pilotLiftAxis = 0;
     sendPilotInput();
   }
 });
@@ -1220,6 +1248,8 @@ const keyState = {
   brake: false,
   left: false,
   right: false,
+  ascend: false,
+  descend: false,
   boost: false,
   handbrake: false
 };
@@ -1230,6 +1260,9 @@ function updatePilotFromKeys() {
   localActions.pilot.brake = keyState.brake ? 1 : 0;
   localActions.pilot.boost = keyState.boost;
   localActions.pilot.handbrake = keyState.handbrake;
+  localActions.pilot.ascend = keyState.ascend;
+  localActions.pilot.descend = keyState.descend;
+  pilotLiftAxis = (keyState.ascend ? 1 : 0) - (keyState.descend ? 1 : 0);
   pilotBoost.dataset.active = localActions.pilot.boost ? 'true' : 'false';
   sendPilotInput();
   arenaDebug.textContent = `Input: ${pilotAxis.x.toFixed(2)}, ${pilotAxis.y.toFixed(2)}${localActions.pilot.boost ? ' BOOST' : ''}`;
@@ -1250,6 +1283,12 @@ function applyKeyAction(action: KeybindAction, isDown: boolean) {
     case 'pilot.right':
       if (state.seat === 'pilot') keyState.right = isDown;
       break;
+    case 'pilot.ascend':
+      if (state.seat === 'pilot') keyState.ascend = isDown;
+      break;
+    case 'pilot.descend':
+      if (state.seat === 'pilot') keyState.descend = isDown;
+      break;
     case 'pilot.boost':
       if (state.seat === 'pilot') keyState.boost = isDown;
       break;
@@ -1257,20 +1296,20 @@ function applyKeyAction(action: KeybindAction, isDown: boolean) {
       if (state.seat === 'pilot') keyState.handbrake = isDown;
       break;
     case 'gunner.prevWeapon':
-      if (isDown && state.seat === 'gunner') cycleWeapon(-1);
+      if (isDown && (state.seat === 'gunner' || state.mode === 'single')) cycleWeapon(-1);
       break;
     case 'gunner.nextWeapon':
-      if (isDown && state.seat === 'gunner') cycleWeapon(1);
+      if (isDown && (state.seat === 'gunner' || state.mode === 'single')) cycleWeapon(1);
       break;
     case 'gunner.fire':
-      if (state.seat === 'gunner') {
+      if (state.seat === 'gunner' || state.mode === 'single') {
         localActions.gunner.fire = isDown;
         gunnerFire.dataset.active = isDown ? 'true' : 'false';
         sendGunnerInput();
       }
       break;
     case 'gunner.altFire':
-      if (state.seat === 'gunner') {
+      if (state.seat === 'gunner' || state.mode === 'single') {
         localActions.gunner.altFire = isDown;
         sendGunnerInput();
       }
@@ -1323,6 +1362,8 @@ window.addEventListener('blur', () => {
   keyState.brake = false;
   keyState.left = false;
   keyState.right = false;
+  keyState.ascend = false;
+  keyState.descend = false;
   keyState.boost = false;
   keyState.handbrake = false;
   keyStateLabel.textContent = 'Key -';
@@ -1483,9 +1524,16 @@ async function connect(roomId?: string) {
   }
   state.playerId = getTokenPayload(state.accessToken) ?? '';
   updateDebugMeta();
-  const options: { userId: string; seat?: SeatType; lockSeat?: boolean } = { userId: state.playerId };
+  const options: { userId: string; seat?: SeatType; lockSeat?: boolean; mode?: 'crew' | 'single' } = {
+    userId: state.playerId,
+    mode: state.mode
+  };
   if (e2eSeat) {
     options.seat = e2eSeat;
+    options.lockSeat = true;
+  }
+  if (!e2eSeat && state.mode === 'single') {
+    options.seat = 'pilot';
     options.lockSeat = true;
   }
   addLog('info', 'Connecting to room', { roomId: roomId ?? 'matchmake', userId: state.playerId });
@@ -1505,6 +1553,11 @@ async function connect(roomId?: string) {
   });
   state.room.onMessage('gameover', (payload) => {
     showGameover(payload);
+  });
+  state.room.onMessage('achievement', (payload: { label?: string }) => {
+    comboToast.textContent = payload.label ?? 'Achievement unlocked';
+    comboToast.classList.add('show');
+    setTimeout(() => comboToast.classList.remove('show'), 2400);
   });
   state.room.onStateChange(() => {
     const now = performance.now();
@@ -1609,6 +1662,8 @@ const registerButton = document.getElementById('register')!;
 const quickPlayButton = document.getElementById('quick-play')!;
 const createRoomButton = document.getElementById('create-room')!;
 const joinRoomButton = document.getElementById('join-room')!;
+const browseRoomsButton = document.getElementById('browse-rooms')!;
+const roomList = document.getElementById('room-list')!;
 
 loginButton.addEventListener('click', async () => {
   const email = (document.getElementById('email') as HTMLInputElement).value;
@@ -1638,6 +1693,12 @@ registerButton.addEventListener('click', async () => {
   }
 });
 
+document.querySelectorAll<HTMLInputElement>('input[name="game-mode"]').forEach((input) => {
+  input.addEventListener('change', () => {
+    state.mode = input.value === 'single' ? 'single' : 'crew';
+  });
+});
+
 if (state.accessToken && !e2eMode) {
   connect();
 }
@@ -1660,7 +1721,8 @@ createRoomButton.addEventListener('click', async () => {
     '/matchmake/create',
     {
       method: 'POST',
-      headers: { Authorization: `Bearer ${state.accessToken}` }
+      headers: { Authorization: `Bearer ${state.accessToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mode: state.mode })
     },
     'create room'
   );
@@ -1692,6 +1754,38 @@ joinRoomButton.addEventListener('click', async () => {
   await connect(data.roomId);
 });
 
+browseRoomsButton.addEventListener('click', async () => {
+  roomStatus.textContent = '';
+  roomList.innerHTML = 'Loading rooms...';
+  try {
+    const rooms = await client.getAvailableRooms('game');
+    if (!rooms.length) {
+      roomList.textContent = 'No open rooms yet.';
+      return;
+    }
+    roomList.innerHTML = rooms
+      .map(
+        (room) => `
+          <div class="room-row">
+            <div><strong>${room.roomId.slice(0, 6)}</strong> · ${room.clients}/${room.maxClients} players · ${room.metadata?.mode ?? 'crew'}</div>
+            <button data-room="${room.roomId}">Join</button>
+          </div>
+        `
+      )
+      .join('');
+    roomList.querySelectorAll<HTMLButtonElement>('button[data-room]').forEach((button) => {
+      button.addEventListener('click', async () => {
+        const id = button.dataset.room;
+        if (!id) return;
+        await connect(id);
+      });
+    });
+  } catch (error) {
+    roomList.textContent = 'Failed to load rooms.';
+    addLog('error', 'Room browser failed', error);
+  }
+});
+
 updateDebugMeta();
 addLog('info', 'Debug console ready.');
 
@@ -1704,7 +1798,7 @@ document.body.addEventListener('pointerdown', () => {
   if (document.activeElement !== arena) arena.focus();
 });
 arena.addEventListener('click', () => {
-  if (state.seat === 'gunner' && document.pointerLockElement !== arena) {
+  if ((state.seat === 'gunner' || state.mode === 'single') && document.pointerLockElement !== arena) {
     arena.requestPointerLock();
   }
 });
@@ -1731,7 +1825,7 @@ arena.addEventListener('mousemove', (event) => {
     sendPilotInput();
     return;
   }
-  if (state.seat !== 'gunner') return;
+  if (state.seat !== 'gunner' && state.mode !== 'single') return;
   if (canvas && event.target !== canvas) return;
   const rect = arena.getBoundingClientRect();
   const cx = rect.left + rect.width / 2;
@@ -1777,7 +1871,7 @@ document.addEventListener('pointerlockchange', () => {
 
 window.addEventListener('mousemove', (event) => {
   if (document.pointerLockElement !== arena) return;
-  if (state.seat !== 'gunner') return;
+  if (state.seat !== 'gunner' && state.mode !== 'single') return;
   const sensitivity = 0.0035;
   localActions.gunner.aimYaw += event.movementX * sensitivity;
   const invert = settings.invertY ? -1 : 1;
@@ -1818,7 +1912,7 @@ window.addEventListener('mousemove', (event) => {
 });
 
 window.addEventListener('mousedown', (event) => {
-  if (state.seat !== 'gunner') return;
+  if (state.seat !== 'gunner' && state.mode !== 'single') return;
   if (event.button === 0) {
     localActions.gunner.fire = true;
     gunnerFire.dataset.active = 'true';
@@ -1844,7 +1938,7 @@ window.addEventListener('mouseup', (event) => {
 });
 
 window.addEventListener('contextmenu', (event) => {
-  if (state.seat === 'gunner') {
+  if (state.seat === 'gunner' || state.mode === 'single') {
     event.preventDefault();
     return;
   }
@@ -2037,7 +2131,16 @@ powerups[0].position.set(4, 0, 14);
 powerups[1].position.set(-5, 0, 18);
 powerups.forEach((mesh) => scene.add(mesh));
 
-type EnemyKind = 'chaser' | 'runner' | 'spitter' | 'boss';
+type EnemyKind =
+  | 'chaser'
+  | 'runner'
+  | 'spitter'
+  | 'lurker'
+  | 'brute'
+  | 'swarm'
+  | 'boss-warden'
+  | 'boss-siren'
+  | 'boss-behemoth';
 
 const enemyGeometry = new THREE.SphereGeometry(0.45, 16, 12);
 const enemyMaterials: Record<string, THREE.MeshStandardMaterial> = {
@@ -2104,11 +2207,17 @@ function drawMiniMap(shipState: { position: { x: number; y: number }; visionRadi
   if (!miniMapCtx || !miniMapConfig) return;
   const { width, height, scale } = miniMapConfig;
   miniMapCtx.clearRect(0, 0, width, height);
-  miniMapCtx.fillStyle = 'rgba(4, 8, 16, 0.85)';
+  const bg = miniMapCtx.createRadialGradient(width * 0.5, height * 0.5, 10, width * 0.5, height * 0.5, width * 0.6);
+  bg.addColorStop(0, 'rgba(12, 22, 44, 0.95)');
+  bg.addColorStop(1, 'rgba(3, 8, 16, 0.95)');
+  miniMapCtx.fillStyle = bg;
   miniMapCtx.fillRect(0, 0, width, height);
 
-  miniMapCtx.strokeStyle = 'rgba(108, 246, 255, 0.18)';
-  miniMapCtx.lineWidth = 1;
+  miniMapCtx.save();
+  miniMapCtx.strokeStyle = 'rgba(108, 246, 255, 0.16)';
+  miniMapCtx.lineWidth = 1.2;
+  miniMapCtx.shadowColor = 'rgba(108, 246, 255, 0.35)';
+  miniMapCtx.shadowBlur = 6;
   cavePath.forEach((point) => {
     const radius = (point.radius ?? caveBaseRadius) * scale;
     const center = mapToMini(point.x, point.y);
@@ -2116,9 +2225,13 @@ function drawMiniMap(shipState: { position: { x: number; y: number }; visionRadi
     miniMapCtx.arc(center.x, center.y, radius, 0, Math.PI * 2);
     miniMapCtx.stroke();
   });
+  miniMapCtx.restore();
 
-  miniMapCtx.strokeStyle = 'rgba(108, 246, 255, 0.45)';
-  miniMapCtx.lineWidth = 2;
+  const pathGradient = miniMapCtx.createLinearGradient(0, 0, width, height);
+  pathGradient.addColorStop(0, 'rgba(108, 246, 255, 0.75)');
+  pathGradient.addColorStop(1, 'rgba(78, 190, 255, 0.35)');
+  miniMapCtx.strokeStyle = pathGradient;
+  miniMapCtx.lineWidth = 2.4;
   miniMapCtx.beginPath();
   cavePath.forEach((point, index) => {
     const mapped = mapToMini(point.x, point.y);
@@ -2135,6 +2248,11 @@ function drawMiniMap(shipState: { position: { x: number; y: number }; visionRadi
   miniMapCtx.beginPath();
   miniMapCtx.arc(shipPoint.x, shipPoint.y, 3, 0, Math.PI * 2);
   miniMapCtx.fill();
+  miniMapCtx.strokeStyle = 'rgba(108, 246, 255, 0.4)';
+  miniMapCtx.lineWidth = 1.5;
+  miniMapCtx.beginPath();
+  miniMapCtx.arc(shipPoint.x, shipPoint.y, 6, 0, Math.PI * 2);
+  miniMapCtx.stroke();
 
   const visionRadius = shipState.visionRadius ?? 160;
   const visionRadiusSq = visionRadius * visionRadius;
@@ -2144,13 +2262,19 @@ function drawMiniMap(shipState: { position: { x: number; y: number }; visionRadi
     const dy = enemy.position.y - shipState.position.y;
     const visible = dx * dx + dy * dy <= visionRadiusSq * 1.2;
     const color =
-      enemy.kind === 'boss'
+      enemy.kind === 'boss-warden' || enemy.kind === 'boss-siren' || enemy.kind === 'boss-behemoth'
         ? 'rgba(255, 90, 90, 0.9)'
         : enemy.kind === 'spitter'
           ? 'rgba(184, 123, 255, 0.9)'
           : enemy.kind === 'runner'
             ? 'rgba(255, 179, 71, 0.9)'
-            : 'rgba(255, 79, 79, 0.9)';
+            : enemy.kind === 'lurker'
+              ? 'rgba(88, 223, 255, 0.9)'
+              : enemy.kind === 'brute'
+                ? 'rgba(255, 124, 88, 0.9)'
+                : enemy.kind === 'swarm'
+                  ? 'rgba(255, 214, 92, 0.9)'
+                  : 'rgba(255, 79, 79, 0.9)';
     const dot = mapToMini(enemy.position.x, enemy.position.y);
     miniMapCtx.fillStyle = visible ? color : 'rgba(120, 140, 170, 0.35)';
     miniMapCtx.beginPath();
@@ -2247,6 +2371,45 @@ const projectileStyles: Record<
     scale: 1.5,
     length: 1.6,
     y: 0.75
+  },
+  piercer: {
+    core: new THREE.MeshStandardMaterial({
+      color: 0x6cffb4,
+      roughness: 0.2,
+      metalness: 0.2,
+      emissive: 0x36f5a3,
+      emissiveIntensity: 0.6
+    }),
+    glow: new THREE.SpriteMaterial({ color: 0x9dffd4, opacity: 0.7, transparent: true }),
+    scale: 1.2,
+    length: 1.7,
+    y: 0.7
+  },
+  boomerang: {
+    core: new THREE.MeshStandardMaterial({
+      color: 0xffd166,
+      roughness: 0.3,
+      metalness: 0.2,
+      emissive: 0xffc57a,
+      emissiveIntensity: 0.6
+    }),
+    glow: new THREE.SpriteMaterial({ color: 0xffe2a3, opacity: 0.7, transparent: true }),
+    scale: 1.1,
+    length: 1.4,
+    y: 0.65
+  },
+  arc: {
+    core: new THREE.MeshStandardMaterial({
+      color: 0x8ad4ff,
+      roughness: 0.2,
+      metalness: 0.2,
+      emissive: 0x5bb8ff,
+      emissiveIntensity: 0.6
+    }),
+    glow: new THREE.SpriteMaterial({ color: 0xbde7ff, opacity: 0.7, transparent: true }),
+    scale: 1,
+    length: 1.2,
+    y: 0.6
   }
 };
 const projectileMeshes = new Map<string, THREE.Group>();
@@ -2287,6 +2450,20 @@ function triggerWeaponSfx(kind: string, timeNow: number) {
     if (timeNow - sfxCooldowns.rocket > 0.35) {
       playSfx('rocket', { volume: 0.45, rate: 0.85 + Math.random() * 0.1 });
       sfxCooldowns.rocket = timeNow;
+    }
+    return;
+  }
+  if (kind === 'piercer' || kind === 'arc') {
+    if (timeNow - sfxCooldowns.mg > 0.12) {
+      playSfx('laser', { volume: 0.28, rate: 0.9 + Math.random() * 0.1 });
+      sfxCooldowns.mg = timeNow;
+    }
+    return;
+  }
+  if (kind === 'boomerang') {
+    if (timeNow - sfxCooldowns.cannon > 0.22) {
+      playSfx('cannon', { volume: 0.35, rate: 1.1 + Math.random() * 0.08 });
+      sfxCooldowns.cannon = timeNow;
     }
   }
 }
@@ -2575,7 +2752,9 @@ if (!e2eStaticScene) {
 
   void loadAnimatedModelSafe('enemy-boss', `${assetBase}/Characters/Enemy_Large.gltf`, 4.8).then((model) => {
     if (!model) return;
-    enemyTemplates.boss = model;
+    enemyTemplates['boss-warden'] = model;
+    enemyTemplates['boss-siren'] = model;
+    enemyTemplates['boss-behemoth'] = model;
   });
 
   void loadModelSafe('powerup-health', `${assetBase}/Items/Pickup_Health.gltf`, 1.8).then((model) => {
@@ -2802,7 +2981,7 @@ function initE2EState() {
       enemies: [
         {
           id: 'e2e-boss',
-          kind: 'boss',
+          kind: 'boss-warden',
           position: { x: 0, y: 22 },
           health: 320,
           yaw: Math.PI,
@@ -2833,7 +3012,7 @@ function initE2EState() {
       enemies: [
         {
           id: 'e2e-boss',
-          kind: 'boss',
+          kind: 'boss-warden',
           position: { x: 0, y: 26 },
           health: 360,
           yaw: Math.PI,
@@ -2912,10 +3091,12 @@ function updateScene(dt: number) {
       : pilotInput?.move
         ? { x: pilotInput.move.x, y: pilotInput.move.y }
         : { x: 0, y: 0 };
+  const pilotLift =
+    state.seat === 'pilot' ? pilotLiftAxis : typeof pilotInput?.lift === 'number' ? pilotInput.lift : 0;
   const pilotBoostActive =
     state.seat === 'pilot' ? pilotBoost.dataset.active === 'true' : Boolean(pilotInput?.boost);
   const gunnerAim =
-    state.seat === 'gunner'
+    state.seat === 'gunner' || state.mode === 'single'
       ? gunnerAxis
       : gunnerInput?.aim
         ? { x: gunnerInput.aim.x, y: gunnerInput.aim.y }
@@ -2928,7 +3109,7 @@ function updateScene(dt: number) {
   sfxState.lastBoost = pilotBoostActive;
 
   if (state.seat === 'pilot') {
-    arenaDebug.textContent = `Pilot: ${pilotMove.x.toFixed(2)}, ${pilotMove.y.toFixed(2)}${pilotBoostActive ? ' BOOST' : ''}`;
+    arenaDebug.textContent = `Pilot: ${pilotMove.x.toFixed(2)}, ${pilotMove.y.toFixed(2)} L${pilotLift.toFixed(2)}${pilotBoostActive ? ' BOOST' : ''}`;
   } else if (state.seat === 'gunner') {
     arenaDebug.textContent = `Gunner: ${gunnerAim.x.toFixed(2)}, ${gunnerAim.y.toFixed(2)}${localActions.gunner.fire ? ' FIRE' : ''}`;
   } else {
@@ -2937,7 +3118,7 @@ function updateScene(dt: number) {
 
   if (shipState) {
     const now = performance.now();
-    shipPosition.set(shipState.position.x, 0, shipState.position.y);
+    shipPosition.set(shipState.position.x, shipState.position.z ?? 0, shipState.position.y);
     if (!renderInitialized) {
       renderInitialized = true;
       renderShipPosition.copy(shipPosition);
@@ -2952,14 +3133,20 @@ function updateScene(dt: number) {
 
     const accel = shipTuning.accelBase + shipState.energyEngines * shipTuning.accelBonus;
     const speedLimit = pilotBoostActive ? shipTuning.speedBoost : shipTuning.speed;
-    const serverVelocity = new THREE.Vector3(shipState.velocity.x, 0, shipState.velocity.y);
+    const serverVelocity = new THREE.Vector3(
+      shipState.velocity.x,
+      shipState.velocity.z ?? 0,
+      shipState.velocity.y
+    );
     const serverSpeed = serverVelocity.length();
     if (serverSpeed > speedLimit) {
       serverVelocity.multiplyScalar(speedLimit / serverSpeed);
     }
-    const inputActive = Math.hypot(pilotMove.x, pilotMove.y) > 0.01;
+    const inputActive = Math.hypot(pilotMove.x, pilotMove.y) > 0.01 || Math.abs(pilotLift) > 0.05;
     const inputImpulse = inputActive
-      ? new THREE.Vector3(pilotMove.x, 0, pilotMove.y).multiplyScalar(accel * dt * shipTuning.inputImpulse)
+      ? new THREE.Vector3(pilotMove.x, pilotLift * 0.6, pilotMove.y).multiplyScalar(
+          accel * dt * shipTuning.inputImpulse
+        )
       : new THREE.Vector3();
     const velocityBlend = 1 - Math.exp(-shipTuning.velocitySmoothing * dt);
     renderShipVelocity.lerp(serverVelocity, velocityBlend);
@@ -3070,7 +3257,7 @@ function updateScene(dt: number) {
     muzzleFlash.intensity = gunnerFiring ? 1.6 : 0;
 
     if (crewFeed) {
-      const pilotText = `PILOT ${pilotBoostActive ? 'BOOST' : 'CRUISE'} ${pilotMove.x.toFixed(2)},${pilotMove.y.toFixed(2)}`;
+      const pilotText = `PILOT ${pilotBoostActive ? 'BOOST' : 'CRUISE'} ${pilotMove.x.toFixed(2)},${pilotMove.y.toFixed(2)} L${pilotLift.toFixed(2)}`;
       const gunnerText = `GUNNER ${gunnerFiring ? 'FIRE' : 'HOLD'} AIM ${gunnerAim.x.toFixed(2)},${gunnerAim.y.toFixed(2)}`;
       const powerText = powerInput
         ? `POWER E${powerInput.powerEngines.toFixed(2)} W${powerInput.powerWeapons.toFixed(2)} S${powerInput.powerShields.toFixed(2)}`
@@ -3134,8 +3321,9 @@ function updateScene(dt: number) {
       let nearestDist = Infinity;
       enemySource?.forEach((enemy) => {
         const dx = enemy.position.x - shipPosition.x;
+        const dy = (enemy.position.z ?? 0) - shipPosition.y;
         const dz = enemy.position.y - shipPosition.z;
-        const dist = Math.hypot(dx, dz);
+        const dist = Math.hypot(dx, dy, dz);
         if (dist < nearestDist) nearestDist = dist;
       });
       gunnerMeta.textContent = [
@@ -3317,8 +3505,8 @@ function updateScene(dt: number) {
         arenaStats.textContent = [`E ${enemyCount} | P ${projectileCount}`, `W ${e2eState.wave}`].join('\n');
       } else {
         const rtt = state.room?.connection && 'rtt' in state.room.connection ? state.room.connection.rtt : 0;
-        const serverPos = `${shipState.position.x.toFixed(1)},${shipState.position.y.toFixed(1)}`;
-        const renderPos = `${renderShipPosition.x.toFixed(1)},${renderShipPosition.z.toFixed(1)}`;
+        const serverPos = `${shipState.position.x.toFixed(1)},${shipState.position.y.toFixed(1)},${(shipState.position.z ?? 0).toFixed(1)}`;
+        const renderPos = `${renderShipPosition.x.toFixed(1)},${renderShipPosition.z.toFixed(1)},${renderShipPosition.y.toFixed(1)}`;
         arenaStats.textContent = [
           `FPS ${fps.toFixed(0)}`,
           `RTT ${rtt ? rtt.toFixed(0) : '0'}ms`,
@@ -3359,11 +3547,25 @@ function updateScene(dt: number) {
         enemies.set(enemy.id, mesh);
       }
       const size =
-        enemy.kind === 'boss' ? 3.2 : enemy.kind === 'spitter' ? 1.3 : enemy.kind === 'runner' ? 1.05 : 0.9;
-      mesh.position.set(enemy.position.x, 0, enemy.position.y);
+        enemy.kind === 'boss-warden' || enemy.kind === 'boss-siren' || enemy.kind === 'boss-behemoth'
+          ? 3.3
+          : enemy.kind === 'spitter'
+            ? 1.4
+            : enemy.kind === 'runner'
+              ? 1.2
+              : enemy.kind === 'brute'
+                ? 1.65
+                : enemy.kind === 'lurker'
+                  ? 1.3
+                  : enemy.kind === 'swarm'
+                    ? 1.1
+                    : 1.2;
+      const enemyZ = enemy.position.z ?? 0;
+      mesh.position.set(enemy.position.x, enemyZ, enemy.position.y);
       const dx = enemy.position.x - shipPosition.x;
+      const dy = enemyZ - shipPosition.y;
       const dz = enemy.position.y - shipPosition.z;
-      const visible = dx * dx + dz * dz <= visionRadiusSq * 1.05;
+      const visible = dx * dx + dy * dy + dz * dz <= visionRadiusSq * 1.05;
       mesh.visible = visible;
       if ('yaw' in enemy) {
         mesh.rotation.y = (enemy as { yaw?: number }).yaw ?? mesh.rotation.y;
@@ -3396,14 +3598,14 @@ function updateScene(dt: number) {
         else material.color.setHex(0xffd166);
         const scale = 1.4 * (settings.markOutline / 110) * (radarActive ? 1.35 : 1);
         marker.scale.set(scale, scale, scale);
-        marker.position.set(enemy.position.x, 2.8, enemy.position.y);
+        marker.position.set(enemy.position.x, enemyZ + 2.8, enemy.position.y);
       } else if (marker) {
         scene.remove(marker);
         markedIndicators.delete(enemy.id);
       }
 
       const telegraphActive =
-        enemy.kind === 'boss' &&
+        (enemy.kind === 'boss-warden' || enemy.kind === 'boss-siren' || enemy.kind === 'boss-behemoth') &&
         'telegraphUntil' in enemy &&
         (enemy as { telegraphUntil?: number }).telegraphUntil > markedNow;
       let telegraph = bossTelegraphs.get(enemy.id);
@@ -3415,7 +3617,7 @@ function updateScene(dt: number) {
         }
         const scale = 2.2 * (settings.markOutline / 110) * (radarActive ? 1.2 : 1);
         telegraph.scale.set(scale, scale, scale);
-        telegraph.position.set(enemy.position.x, 3.4, enemy.position.y);
+        telegraph.position.set(enemy.position.x, enemyZ + 3.4, enemy.position.y);
       } else if (telegraph) {
         scene.remove(telegraph);
         bossTelegraphs.delete(enemy.id);
@@ -3425,8 +3627,21 @@ function updateScene(dt: number) {
       if (active.has(id)) return;
       const kind = (mesh.userData.kind as EnemyKind) ?? 'chaser';
       const color =
-        kind === 'boss' ? 0xff3b3b : kind === 'spitter' ? 0xb87bff : kind === 'runner' ? 0xffb347 : 0xff4f4f;
-      spawnSpark(mesh.position.x, mesh.position.z, color, kind === 'boss' ? 3 : 1.6);
+        kind === 'boss-warden' || kind === 'boss-siren' || kind === 'boss-behemoth'
+          ? 0xff3b3b
+          : kind === 'spitter'
+            ? 0xb87bff
+            : kind === 'runner'
+              ? 0xffb347
+              : kind === 'lurker'
+                ? 0x58dfff
+                : kind === 'brute'
+                  ? 0xff7c58
+                  : kind === 'swarm'
+                    ? 0xffd65c
+                    : 0xff4f4f;
+      const bossScale = kind === 'boss-warden' || kind === 'boss-siren' || kind === 'boss-behemoth' ? 3 : 1.6;
+      spawnSpark(mesh.position.x, mesh.position.z, color, bossScale);
       enemies.delete(id);
       enemyMixers.delete(id);
       releaseEnemyMesh(mesh);
@@ -3516,7 +3731,8 @@ function updateScene(dt: number) {
       projectileMeshes.set(projectile.id, mesh);
     }
     const style = projectileStyles[projectile.kind] ?? projectileStyles.mg;
-    mesh.position.set(projectile.position.x, style.y, projectile.position.y);
+    const projectileZ = projectile.position.z ?? 0;
+    mesh.position.set(projectile.position.x, projectileZ + style.y, projectile.position.y);
     const vx = projectile.velocity.x;
     const vz = projectile.velocity.y;
     if (Math.hypot(vx, vz) > 0.001) {

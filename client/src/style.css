@@ -700,10 +700,10 @@ button {
   top: 16px;
   width: 160px;
   height: 160px;
-  border-radius: 12px;
-  border: 1px solid rgba(108, 246, 255, 0.45);
-  background: rgba(4, 8, 16, 0.9);
-  box-shadow: 0 0 12px rgba(108, 246, 255, 0.15);
+  border-radius: 14px;
+  border: 1px solid rgba(108, 246, 255, 0.6);
+  background: rgba(4, 8, 16, 0.92);
+  box-shadow: 0 0 18px rgba(108, 246, 255, 0.25), 0 0 30px rgba(54, 120, 255, 0.2);
 }
 
 .settings-overlay {
@@ -907,6 +907,36 @@ input[type='range'] {
 .room-status {
   font-size: 0.8rem;
   color: rgba(230, 240, 255, 0.7);
+}
+
+.mode-select {
+  display: flex;
+  gap: 12px;
+  font-size: 0.8rem;
+  color: rgba(230, 240, 255, 0.8);
+}
+
+.mode-select label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.room-list {
+  margin-top: 10px;
+  display: grid;
+  gap: 6px;
+  font-size: 0.8rem;
+}
+
+.room-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: rgba(12, 20, 36, 0.6);
+  border: 1px solid rgba(120, 150, 200, 0.35);
 }
 
 .swap-banner {

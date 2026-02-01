@@ -1,5 +1,8 @@
 [
   {"id":"mg","name":"Machine Gun","damage":6,"range":360,"cooldownMs":120,"spread":0.12},
   {"id":"cannon","name":"Cannon","damage":20,"range":300,"cooldownMs":600,"spread":0.18},
-  {"id":"rocket","name":"Rocket","damage":36,"range":420,"cooldownMs":1200,"spread":0.08}
+  {"id":"rocket","name":"Rocket","damage":36,"range":420,"cooldownMs":1200,"spread":0.08},
+  {"id":"piercer","name":"Piercer Lance","damage":14,"range":380,"cooldownMs":420,"spread":0.06},
+  {"id":"boomerang","name":"Boomerang Blade","damage":10,"range":260,"cooldownMs":520,"spread":0.1},
+  {"id":"arc","name":"Arc Caster","damage":8,"range":280,"cooldownMs":260,"spread":0.1}
 ]

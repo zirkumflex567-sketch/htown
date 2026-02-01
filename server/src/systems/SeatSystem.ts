@@ -35,6 +35,7 @@ export class SeatSystem {
   }
 
   tick(deltaMs: number) {
+    if (this.room.mode === 'single') return;
     const now = this.room.simulationTime;
     if (now >= this.warningAt && now < this.nextSwapAt) {
       const countdown = Math.ceil((this.nextSwapAt - now) / 1000);
@@ -47,7 +48,7 @@ export class SeatSystem {
       const ship = this.room.state.ship;
       const speed = Math.hypot(ship.velocity.x, ship.velocity.y);
       const bossTelegraph = this.room.state.enemies.some(
-        (enemy) => enemy.kind === 'boss' && enemy.telegraphUntil > now / 1000
+        (enemy) => isBossKind(enemy.kind) && enemy.telegraphUntil > now / 1000
       );
       if (speed > 140 || bossTelegraph) {
         this.nextSwapAt = now + 3000;
@@ -106,4 +107,8 @@ export class SeatSystem {
 
     this.room.refreshBots();
   }
+}
+
+function isBossKind(kind: string) {
+  return kind.startsWith('boss-');
 }

@@ -106,6 +106,7 @@ export class ShipSystem {
     const accel = (18 + effectiveEngines * 30 + pilotSpeedBonus * 25) * comboSpeed;
     let moveX = pilotInput?.move?.x ?? 0;
     let moveY = pilotInput?.move?.y ?? 0;
+    const liftInput = Math.max(-1, Math.min(1, pilotInput?.lift ?? 0));
     if (assistActive) {
       moveX = this.room.lastPilotMove.x * 0.7 + moveX * 0.3;
       moveY = this.room.lastPilotMove.y * 0.7 + moveY * 0.3;
@@ -114,29 +115,36 @@ export class ShipSystem {
     }
     ship.velocity.x += moveX * accel * delta;
     ship.velocity.y += moveY * accel * delta;
+    const verticalAccel = (12 + effectiveEngines * 22 + pilotSpeedBonus * 12) * comboSpeed;
+    ship.velocity.z += liftInput * verticalAccel * delta;
 
     const speedLimit = pilotInput?.boost
       ? (80 + effectiveEngines * 40 + pilotSpeedBonus * 40) * comboSpeed
       : (55 + effectiveEngines * 35 + pilotSpeedBonus * 30) * comboSpeed;
-    const speed = Math.hypot(ship.velocity.x, ship.velocity.y);
+    const speed = Math.hypot(ship.velocity.x, ship.velocity.y, ship.velocity.z);
     if (speed > speedLimit) {
       ship.velocity.x = (ship.velocity.x / speed) * speedLimit;
       ship.velocity.y = (ship.velocity.y / speed) * speedLimit;
+      ship.velocity.z = (ship.velocity.z / speed) * speedLimit;
     }
 
     ship.position.x += ship.velocity.x * delta;
     ship.position.y += ship.velocity.y * delta;
+    ship.position.z += ship.velocity.z * delta;
 
     ship.velocity.x *= 0.92;
     ship.velocity.y *= 0.92;
+    ship.velocity.z *= 0.9;
 
-    const clamp = clampToCave(ship.position.x, ship.position.y, 1);
+    const clamp = clampToCave(ship.position.x, ship.position.y, ship.position.z, 1);
     if (clamp.outside) {
       ship.position.x = clamp.x;
       ship.position.y = clamp.y;
+      ship.position.z = clamp.z;
       const tangentDot = ship.velocity.x * clamp.tangentX + ship.velocity.y * clamp.tangentY;
       ship.velocity.x = clamp.tangentX * tangentDot * 0.65;
       ship.velocity.y = clamp.tangentY * tangentDot * 0.65;
+      ship.velocity.z *= 0.35;
       if (this.room.simulationTime - this.room.lastWallHit > 400) {
         this.room.damageShip(2);
         this.room.lastWallHit = this.room.simulationTime;
@@ -148,7 +156,7 @@ export class ShipSystem {
     }
 
     const supportVision = this.room.seatBonuses?.support?.vision ?? 0;
-    ship.visionRadius = 140 + effectiveShields * 80 + supportVision * 120;
+    ship.visionRadius = 190 + effectiveShields * 110 + supportVision * 170;
     const powerShieldBonus = this.room.seatBonuses?.power?.shield ?? 0;
     const maxShield = 50 + effectiveShields * 90 + powerShieldBonus * 60;
     const regen = 4 + effectiveShields * 8 + powerShieldBonus * 6 + Math.max(0, effectiveWeapons - 0.4) * 6;
