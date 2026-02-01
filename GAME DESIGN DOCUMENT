@@ -1,0 +1,155 @@
+GAME DESIGN DOCUMENT
+Arbeitstitel: (noch offen)
+Genre: Koop-Roguelite / Arcade Action
+Plattformen: Mobile, PC
+Spieler: 1–5 Online-Koop
+Session-Struktur: Endlose Runs
+USP: Ein Fahrzeug, mehrere Rollen, chaotischer Rollentausch
+1. Vision Statement & High Concept
+Vision
+Ein streamer-taugliches, humorvoll-chaotisches Koop-Roguelite, in dem Freundschaften im Gefecht getestet werden. Spieler teilen sich ein einziges Kampffahrzeug, bedienen unterschiedliche Stationen – und verlieren diese Rollen immer wieder unvorhersehbar. Chaos ist kein Fehler, sondern das Herz des Spiels.
+High Concept
+1–5 Spieler kämpfen gemeinsam in einer dunklen, stylized Welt gegen endlose Gegnerhorden. Jeder Spieler kontrolliert eine Station des Fahrzeugs (Pilot, Waffen, Energie, Spezialfähigkeiten, Sensorik). Während des Runs werden die Rollen zufällig vertauscht – auch mitten im Kampf. Das Spiel belohnt Anpassungsfähigkeit, Kommunikation und Teamplay unter Druck.
+Emotionale Zielsetzung
+Lautes Lachen, Schreien, Adrenalin
+„Wir gegen die Welt“-Gefühl
+Stream-Momente durch unerwartete Rollenwechsel
+Stolz auf gemeistertes Chaos
+2. Spielmodi
+Modus A – Crew-Coop (5-Seat-Modus)
+Der Kernmodus aus dem Originaldokument.
+1–5 Spieler steuern ein gemeinsames Fahrzeug
+Jeder Spieler bedient eine Station
+Fehlende Spieler werden durch KI-Crew ersetzt
+Regelmäßiger zufälliger Rollentausch
+Maximales Chaos, maximale Kommunikation
+Modus B – Solo-Ship / Shared Battlefield
+Ein reduzierter, weniger komplexer Modus.
+Jeder Spieler steuert sein eigenes Fahrzeug
+Bis zu 5 Spieler gleichzeitig auf einer gemeinsamen Karte
+Gleiche Gegner, gleiche Bosse
+Angepasster Schwierigkeitsgrad
+Kein Rollenwechsel, Fokus auf Action
+Gedacht als:
+Einstieg für neue Spieler
+Mobile-freundlicher Modus
+Schnellere Sessions
+👉 Beide Modi nutzen dieselben Gegner, Bosse, Biome und Systeme, nur die Steuerungslogik unterscheidet sich.
+3. Core Gameplay Loop
+Sekund-zu-Sekund-Loop
+Fahrzeug manövrieren
+Gegner bekämpfen
+Energie verteilen
+Fähigkeiten timen
+Sensorinformationen auswerten
+Permanente Kommunikation
+Minuten-Loop
+Gegnerwellen → Loot/Upgrades
+Events / Elite-Gegner
+Rollentausch
+Kurze Re-Orientierung
+Steigende Intensität
+Run-Loop
+Start schwach
+Upgrades eskalieren absurd
+Schwierigkeit skaliert endlos
+Boss alle 5–10 Minuten
+Tod ist unvermeidlich
+Score → Leaderboard
+4. Rollen & Stationen (Crew-Coop)
+Pilot
+Fahrzeugbewegung & Positionierung
+Third-Person-Kamera
+Boost-Manöver
+Autopilot-Absicherung beim Rollentausch
+Gunner
+Hauptwaffen & Türme
+Zielpriorisierung
+Munitions-/Hitze-Management
+Auto-Tracking beim Swap
+Engineer (Power)
+Energieverteilung (Waffen / Schilde / Antrieb)
+Reparaturen
+Timing-basierte Skillchecks
+Energie-Trägheit statt Slider-Spam
+Specialist (Systems)
+Aktive Module (EMP, Shield, Overdrive etc.)
+Cooldowns & Synergien
+Modi abhängig von Power & Combos
+Analyst / Support (Sensor)
+Radar & Scans
+Markierungen & Status-Effekte
+Informations-Überlegenheit
+Kritische „Clutch“-Momente
+👉 Alle Rollen sind gleichwertig wichtig, aber unterschiedlich komplex.
+5. Rollentausch-System (USP)
+Zufällige, ereignisbasierte Auslösung
+Kein fester Timer
+Vermeidet unfairste Mikro-Momente
+AV-Signal + Mini-Slowmo
+Kurze Fairness-Phase (Autopilot, Turret-Lock, Shield-Grace)
+Kein Spieler behält dieselbe Rolle zweimal hintereinander
+Ziel:
+Überraschung, Chaos, Humor – ohne Frust.
+6. Crew Harmony & Combo-System
+Server-autoritative Combos
+Aktionen mehrerer Seats innerhalb von Zeitfenstern
+Beispiele:
+Execution Combo
+Momentum Surge
+Perfect Stabilization
+UI-Feedback als kurze Combo-Toasts
+Rein belohnend, niemals zwingend
+7. Upgrade- & Progressionssystem
+Run-gebunden, keine permanente Power
+Upgrades sind an Stationen gebunden
+Stacken absurd
+Starke Synergien zwischen Rollen
+Sichtbar im HUD & Fahrzeugmodell
+Keine klassische Metaprogression
+Kein XP-Grind
+Kein Power-Unlock
+Nur Skill + Score
+8. Gegner- & Bossdesign
+Gegner fordern gezielt bestimmte Rollen
+Kombinationen erzeugen Chaos
+Bosse = Multi-Phasen-Koop-Prüfung
+Rollentausch auch in Bosskämpfen
+Telegraphiert, aber gnadenlos
+9. Welt & Prozedurale Generierung
+Modulare Arenen
+Dunkelheit als Mechanik
+Volumetrischer Nebel & Licht als Gameplay
+Zufällige Events & Modifikatoren
+Biome rotieren pro Run
+10. UI / UX
+Informationsreich
+Damage-Meter
+Status-Stacks
+Seat-spezifische HUDs
+70 % Fokus auf aktive Rolle, 30 % Crew-Overview
+Schnelle Orientierung nach Seat-Swap
+11. Audio & Präsentation
+Humorvoll-chaotischer Ton
+Überzeichnete SFX
+Klare Audio-Cues für Gefahren & Swaps
+Stream-freundlich (lesbar, hörbar, eskalierend)
+12. Monetarisierung
+Free-to-Play
+Werbung zwischen Runs
+Optional: Video schauen für Run-Bonus
+Einmal-Kauf = werbefrei
+Cosmetics & Battlepass später evaluierbar
+Kein Pay-to-Win
+13. Technische Ausrichtung (High-Level)
+Vite + Colyseus Backend
+Server-autoritative Logik
+Mobile & PC-kompatibel
+Datengetriebene Systeme
+Erweiterbar ohne Refactor
+14. Design-Pillars (Kurzfassung)
+Chaos ist ein Feature
+Teamplay vor Individualismus
+Skill schlägt Progression
+Humorvolle Eskalation
+Stream- & Friend-First Design
