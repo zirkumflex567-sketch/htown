@@ -316,27 +316,7 @@ export class GameRoom extends Room<GameState> {
       for (const player of this.state.players.values()) {
         player.ready = false;
       }
-      this.state.ship.health = 100;
-      this.state.score = 0;
-      this.state.wave = 1;
-      this.state.timeSurvived = 0;
-      this.state.enemies.clear();
-      this.killCount = 0;
-      this.bossKillCount = 0;
-      this.resetSeatStats();
-      this.lastShipPosById.clear();
-      this.lastBoostByShip.clear();
-      this.lastHandbrakeByShip.clear();
-      for (const [playerId, ship] of this.state.ships.entries()) {
-        this.lastShipPosById.set(playerId, {
-          x: ship.position.x,
-          y: ship.position.y,
-          z: ship.position.z
-        });
-        this.lastBoostByShip.set(playerId, false);
-        this.lastHandbrakeByShip.set(playerId, false);
-      }
-      this.rollRunLoadout();
+      this.resetRunState(true);
     }
   }
 
@@ -382,17 +362,7 @@ export class GameRoom extends Room<GameState> {
       for (const player of this.state.players.values()) {
         player.ready = false;
       }
-      for (const ship of this.state.ships.values()) {
-        ship.health = 100;
-      }
-      this.state.score = 0;
-      this.state.wave = 1;
-      this.state.timeSurvived = 0;
-      this.state.enemies.clear();
-      this.killCount = 0;
-      this.bossKillCount = 0;
-      this.resetSeatStats();
-      this.rollRunLoadout();
+      this.resetRunState(true);
     }
   }
 
@@ -1194,6 +1164,186 @@ export class GameRoom extends Room<GameState> {
     this.lastPowerValues = { engines: 0.33, weapons: 0.33, shields: 0.34 };
   }
 
+  private resetSeatBonuses() {
+    this.seatBonuses = {
+      pilot: { speed: 0 },
+      gunner: { damage: 0 },
+      power: { shield: 0 },
+      systems: { cooldown: 0 },
+      support: { vision: 0 }
+    };
+  }
+
+  private resetSystemsState() {
+    const systems = this.state.systems;
+    systems.empCooldown = 0;
+    systems.shieldCooldown = 0;
+    systems.slowCooldown = 0;
+    systems.overdriveCooldown = 0;
+    systems.overdriveUntil = 0;
+    systems.empUntil = 0;
+    systems.slowFieldUntil = 0;
+    systems.slowFieldRadius = 0;
+    systems.empMode = 'standard';
+    systems.shieldMode = 'standard';
+    systems.slowMode = 'standard';
+    systems.overdriveMode = 'standard';
+  }
+
+  private resetSupportState() {
+    const support = this.state.support;
+    support.pingCooldown = 0;
+    support.repairCooldown = 0;
+    support.radarUntil = 0;
+    support.repairWindowStart = 0;
+    support.repairWindowEnd = 0;
+    support.repairQuality = 0;
+  }
+
+  private resetSeatInputState() {
+    for (const seat of ['pilot', 'gunner', 'power', 'systems', 'support'] as SeatType[]) {
+      let entry = this.state.seatInputs.get(seat);
+      if (!entry) {
+        entry = new SeatInputState();
+        entry.seat = seat;
+        this.state.seatInputs.set(seat, entry);
+      }
+      entry.seat = seat;
+      entry.move.x = 0;
+      entry.move.y = 0;
+      entry.aim.x = 0;
+      entry.aim.y = 0;
+      entry.lift = 0;
+      entry.boost = false;
+      entry.fire = false;
+      entry.weaponIndex = 0;
+      entry.powerEngines = 0.33;
+      entry.powerWeapons = 0.33;
+      entry.powerShields = 0.34;
+      entry.powerPreset = 'balanced';
+      entry.systemsAbility = -1;
+      entry.supportAction = '';
+    }
+  }
+
+  private resetShipState(ship: ShipState, position?: { x: number; y: number; z: number }) {
+    if (position) {
+      ship.position.x = position.x;
+      ship.position.y = position.y;
+      ship.position.z = position.z;
+    }
+    ship.velocity.x = 0;
+    ship.velocity.y = 0;
+    ship.velocity.z = 0;
+    ship.heading = 0;
+    ship.health = 100;
+    ship.shield = 50;
+    ship.energyEngines = 0.33;
+    ship.energyWeapons = 0.33;
+    ship.energyShields = 0.34;
+    ship.visionRadius = 160;
+    ship.powerTargetEngines = 0.33;
+    ship.powerTargetWeapons = 0.33;
+    ship.powerTargetShields = 0.34;
+    ship.powerInstability = 0;
+    ship.powerHeat = 0;
+    ship.powerWindowStart = 0;
+    ship.powerWindowEnd = 0;
+    ship.powerWindowType = '';
+    ship.powerOverloadUntil = 0;
+    ship.powerPerfectUntil = 0;
+    ship.visionPulseUntil = 0;
+    ship.comboSpeedUntil = 0;
+    ship.comboTrailUntil = 0;
+    ship.comboDamageUntil = 0;
+    ship.hullRegenUntil = 0;
+    ship.scoreBoostUntil = 0;
+    ship.reflectUntil = 0;
+    ship.chainUntil = 0;
+    ship.poisonUntil = 0;
+    ship.pierceUntil = 0;
+    ship.boomerangUntil = 0;
+  }
+
+  private resetRunState(resetPositions: boolean) {
+    this.simulationTime = 0;
+    this.invulUntil = 0;
+    this.stabilizerUntil = 0;
+    this.swapGraceUntil = 0;
+    this.swapOverdriveSeconds = 0;
+    this.state.swapCountdown = 0;
+    this.state.swapGrace = 0;
+    this.state.swapLabel = '';
+    this.state.comboName = '';
+    this.state.comboDetail = '';
+    this.state.comboUntil = 0;
+    this.state.score = 0;
+    this.state.wave = 1;
+    this.state.timeSurvived = 0;
+    this.state.enemies.clear();
+    this.state.projectiles.clear();
+    this.state.upgradeChoices.clear();
+    this.killCount = 0;
+    this.bossKillCount = 0;
+    this.gunnerHeat = 0;
+    this.lastSupportScanAt = 0;
+    this.lastSupportRepairPerfectAt = 0;
+    this.lastSystemsOverdriveAt = 0;
+    this.lastSystemsShieldAt = 0;
+    this.lastSystemsEmpAt = 0;
+    this.lastSystemsSlowAt = 0;
+    this.lastPilotBoostAt = 0;
+    this.lastPowerShiftEnginesAt = 0;
+    this.lastPowerShiftWeaponsAt = 0;
+    this.lastMarkedKillAt = 0;
+    this.lastMarkedKillId = '';
+    this.lastSupportLootAt = 0;
+    this.lastUpgradeDropAt = 0;
+    this.comboCooldowns.clear();
+    this.lastFireAt.clear();
+    this.achievementFlags.clear();
+    this.clearSeatInputs();
+    this.soloInputs.clear();
+    this.resetSeatInputState();
+    this.resetSystemsState();
+    this.resetSupportState();
+    this.resetSeatBonuses();
+    this.lastShipPosById.clear();
+    this.lastBoostByShip.clear();
+    this.lastHandbrakeByShip.clear();
+    this.lastWallHitByShip.clear();
+    this.gunnerHeatByShip.clear();
+
+    const crewSpawn = resetPositions ? { x: 0, y: 0, z: 0 } : undefined;
+    this.resetShipState(this.state.ship, crewSpawn);
+
+    if (this.mode === 'solo') {
+      const ships = Array.from(this.state.ships.entries());
+      const count = Math.max(ships.length, 1);
+      ships.forEach(([playerId, ship], index) => {
+        const angle = (index / count) * Math.PI * 2;
+        const radius = 8;
+        const spawn = resetPositions
+          ? { x: Math.cos(angle) * radius, y: Math.sin(angle) * radius, z: 0 }
+          : undefined;
+        this.resetShipState(ship, spawn);
+        this.lastShipPosById.set(playerId, {
+          x: ship.position.x,
+          y: ship.position.y,
+          z: ship.position.z
+        });
+        this.lastBoostByShip.set(playerId, false);
+        this.lastHandbrakeByShip.set(playerId, false);
+        this.lastWallHitByShip.set(playerId, 0);
+        this.gunnerHeatByShip.set(playerId, 0);
+      });
+      this.shipSpawnIndex = this.state.ships.size;
+    }
+
+    this.resetSeatStats();
+    this.rollRunLoadout();
+  }
+
   clearSeatInputs() {
     this.inputs.clear();
   }
@@ -1209,25 +1359,7 @@ export class GameRoom extends Room<GameState> {
     for (const player of this.state.players.values()) {
       player.ready = false;
     }
-    this.state.score = 0;
-    this.state.wave = 1;
-    this.state.timeSurvived = 0;
-    this.state.enemies.clear();
-    this.state.projectiles.clear();
-    this.state.upgradeChoices.clear();
-    this.killCount = 0;
-    this.bossKillCount = 0;
-    this.resetSeatStats();
-    if (this.mode === 'solo') {
-      for (const ship of this.state.ships.values()) {
-        ship.health = 100;
-        ship.shield = 50;
-      }
-    } else {
-      this.state.ship.health = 100;
-      this.state.ship.shield = 50;
-    }
-    this.rollRunLoadout();
+    this.resetRunState(true);
     this.refreshBots();
   }
 
