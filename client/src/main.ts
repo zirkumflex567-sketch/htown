@@ -159,34 +159,59 @@ app.innerHTML = `
       </div>
     </div>
     <div class="overlay" id="overlay">
-      <div class="card">
-        <h2>Login</h2>
-        <input type="email" id="email" placeholder="Email" />
-        <input type="password" id="password" placeholder="Password" />
-        <div class="actions">
-          <button id="login">Login</button>
-          <button id="register">Register</button>
+      <div class="card overlay-card">
+        <div class="overlay-screen" data-screen="login">
+          <h2>Login</h2>
+          <input type="email" id="email" placeholder="Email" />
+          <input type="password" id="password" placeholder="Password" />
+          <div class="actions">
+            <button id="login">Login</button>
+            <button id="register">Register</button>
+          </div>
+          <div class="room-status" id="login-status"></div>
         </div>
-        <h3>Matchmaking</h3>
-        <div class="mode-select">
-          <label><input type="radio" name="game-mode" value="solo" /> Solo Ships</label>
-          <label><input type="radio" name="game-mode" value="single" /> Solo Control</label>
-          <label><input type="radio" name="game-mode" value="crew" checked /> Crew Seats</label>
+        <div class="overlay-screen" data-screen="menu">
+          <h2>Menu</h2>
+          <div class="menu-copy">Session ready. Select Play to continue.</div>
+          <div class="actions">
+            <button id="menu-play">Play</button>
+            <button id="menu-logout">Logout</button>
+          </div>
         </div>
-        <input type="text" id="room-code" placeholder="Room Code" />
-        <div class="actions">
-          <button id="quick-play">Quick Play</button>
-          <button id="create-room">Create Room</button>
-          <button id="join-room">Join Room</button>
-          <button id="browse-rooms">Browse Rooms</button>
+        <div class="overlay-screen" data-screen="mode">
+          <h2>Mode Selection</h2>
+          <div class="mode-select">
+            <label><input type="radio" name="game-mode" value="solo" /> Solo Ships</label>
+            <label><input type="radio" name="game-mode" value="single" /> Solo Control</label>
+            <label><input type="radio" name="game-mode" value="crew" checked /> Crew Seats</label>
+          </div>
+          <div class="actions">
+            <button id="mode-back">Back</button>
+            <button id="mode-continue">Continue</button>
+          </div>
         </div>
-        <div class="room-status" id="room-status"></div>
-        <div class="room-list" id="room-list"></div>
+        <div class="overlay-screen" data-screen="lobby">
+          <h2>Lobby</h2>
+          <div class="lobby-meta">Mode: <strong id="lobby-mode-label">Crew Seats</strong></div>
+          <input type="text" id="room-code" placeholder="Room Code" />
+          <div class="actions">
+            <button id="quick-play">Quick Play</button>
+            <button id="create-room">Create Room</button>
+            <button id="join-room">Join Room</button>
+            <button id="browse-rooms">Browse Rooms</button>
+          </div>
+          <div class="room-status" id="room-status"></div>
+          <div class="room-list" id="room-list"></div>
+          <div class="actions">
+            <button id="lobby-back">Back</button>
+          </div>
+        </div>
       </div>
     </div>
     <button class="debug-fab" id="debug-fab" title="Toggle debug (\` or Ctrl+D)">Debug</button>
     <button class="settings-fab" id="settings-fab" title="Settings">Settings</button>
     <button class="stats-fab" id="stats-fab" title="Stats">Stats</button>
+    <button class="menu-fab" id="menu-fab" title="Menu">Menu</button>
     <button class="seat-toggle" id="seat-toggle" title="Seat Controls">Seats</button>
     <div class="debug-console hidden" id="debug-console">
       <div class="debug-header">
@@ -304,6 +329,8 @@ app.innerHTML = `
 `;
 
 const overlay = document.getElementById('overlay')!;
+const overlayScreens = Array.from(document.querySelectorAll<HTMLElement>('.overlay-screen'));
+const lobbyModeLabel = document.getElementById('lobby-mode-label')!;
 const swapFlash = document.getElementById('swap-flash')!;
 const swapBanner = document.getElementById('swap-banner')!;
 const upgrade = document.getElementById('upgrade')!;
@@ -345,6 +372,7 @@ const loadoutUpgrades = document.getElementById('loadout-upgrades')!;
 const loadoutSynergies = document.getElementById('loadout-synergies')!;
 const inputStateLabel = document.getElementById('input-state')!;
 const keyStateLabel = document.getElementById('key-state')!;
+const loginStatus = document.getElementById('login-status')!;
 const roomStatus = document.getElementById('room-status')!;
 const debugConsole = document.getElementById('debug-console')!;
 const debugFab = document.getElementById('debug-fab')! as HTMLButtonElement;
@@ -354,7 +382,13 @@ const settingsClose = document.getElementById('settings-close')! as HTMLButtonEl
 const statsFab = document.getElementById('stats-fab')! as HTMLButtonElement;
 const statsOverlay = document.getElementById('stats-overlay')!;
 const statsClose = document.getElementById('stats-close')! as HTMLButtonElement;
+const menuFab = document.getElementById('menu-fab')! as HTMLButtonElement;
 const seatToggle = document.getElementById('seat-toggle')! as HTMLButtonElement;
+const menuPlayButton = document.getElementById('menu-play')! as HTMLButtonElement;
+const menuLogoutButton = document.getElementById('menu-logout')! as HTMLButtonElement;
+const modeBackButton = document.getElementById('mode-back')! as HTMLButtonElement;
+const modeContinueButton = document.getElementById('mode-continue')! as HTMLButtonElement;
+const lobbyBackButton = document.getElementById('lobby-back')! as HTMLButtonElement;
 const statsMe = document.getElementById('stats-me')!;
 const statsLeaderboard = document.getElementById('stats-leaderboard')!;
 if (e2eVisualsEnabled) {
@@ -407,6 +441,43 @@ function updateDebugMeta() {
   debugAccess.textContent = state.accessToken ? 'set' : 'missing';
   debugRefresh.textContent = state.refreshToken ? 'set' : 'missing';
   debugError.textContent = state.lastError || '—';
+}
+
+type OverlayScreen = 'login' | 'menu' | 'mode' | 'lobby';
+
+const overlayModeLabels: Record<GameMode, string> = {
+  crew: 'Crew Seats',
+  solo: 'Solo Ships',
+  single: 'Solo Control'
+};
+
+function updateLobbyModeLabel() {
+  lobbyModeLabel.textContent = overlayModeLabels[state.mode] ?? state.mode;
+}
+
+function syncModeInputs() {
+  document.querySelectorAll<HTMLInputElement>('input[name="game-mode"]').forEach((input) => {
+    input.checked = input.value === state.mode;
+  });
+}
+
+function setOverlayScreen(screen: OverlayScreen) {
+  overlayScreens.forEach((panel) => {
+    panel.classList.toggle('active', panel.dataset.screen === screen);
+  });
+  overlay.dataset.screen = screen;
+  overlay.classList.remove('hidden');
+  if (screen === 'lobby') {
+    updateLobbyModeLabel();
+  } else if (screen === 'mode') {
+    syncModeInputs();
+  } else {
+    roomStatus.textContent = '';
+    roomList.innerHTML = '';
+  }
+  if (screen !== 'login') {
+    loginStatus.textContent = '';
+  }
 }
 
 function formatLogData(data: unknown) {
@@ -733,6 +804,10 @@ function syncSettingsUI() {
 
 settingsFab.addEventListener('click', () => {
   settingsOverlay.classList.remove('hidden');
+});
+
+menuFab.addEventListener('click', () => {
+  void leaveRoomToMenu();
 });
 
 seatToggle.addEventListener('click', () => {
@@ -1496,6 +1571,79 @@ async function requestJson(
   return { response, data };
 }
 
+function resetLocalActions() {
+  pilotAxis = { x: 0, y: 0 };
+  gunnerAxis = { x: 1, y: 0 };
+  pilotLiftAxis = 0;
+  localActions.pilot.throttle = 0;
+  localActions.pilot.brake = 0;
+  localActions.pilot.steer = 0;
+  localActions.pilot.handbrake = false;
+  localActions.pilot.boost = false;
+  localActions.pilot.ascend = false;
+  localActions.pilot.descend = false;
+  localActions.gunner.aimYaw = 0;
+  localActions.gunner.aimPitch = 0;
+  localActions.gunner.fire = false;
+  localActions.gunner.altFire = false;
+  localActions.gunner.swapWeapon = 0;
+  localActions.power.preset = 'balanced';
+  localActions.power.engines = 0.33;
+  localActions.power.weapons = 0.33;
+  localActions.power.shields = 0.34;
+  localActions.systems.abilityIndex = -1;
+  localActions.support.action = null;
+  keyState.throttle = false;
+  keyState.brake = false;
+  keyState.left = false;
+  keyState.right = false;
+  keyState.ascend = false;
+  keyState.descend = false;
+  keyState.boost = false;
+  keyState.handbrake = false;
+  pilotBoost.dataset.active = 'false';
+  gunnerFire.dataset.active = 'false';
+  powerEngines.value = '33';
+  powerWeapons.value = '33';
+  powerShields.value = '34';
+}
+
+function resetClientState() {
+  state.room = null;
+  state.playerId = '';
+  state.inputs.clear();
+  renderInitialized = false;
+  clearAllyShips();
+  setSeat('pilot');
+  resetLocalActions();
+  if (document.pointerLockElement === arena) {
+    document.exitPointerLock();
+  }
+  updateDebugMeta();
+}
+
+function handleRoomLeft() {
+  resetClientState();
+  if (e2eVisualsEnabled) return;
+  if (state.accessToken) {
+    setOverlayScreen(e2eMode ? 'lobby' : 'menu');
+  } else {
+    setOverlayScreen('login');
+  }
+}
+
+async function leaveRoomToMenu() {
+  if (state.room) {
+    try {
+      await state.room.leave();
+      return;
+    } catch (error) {
+      addLog('error', 'Room leave failed', error);
+    }
+  }
+  handleRoomLeft();
+}
+
 async function auth(endpoint: string, payload: Record<string, string>) {
   const { response, data } = await requestJson(
     endpoint,
@@ -1515,6 +1663,9 @@ async function auth(endpoint: string, payload: Record<string, string>) {
   localStorage.setItem('accessToken', state.accessToken);
   localStorage.setItem('refreshToken', state.refreshToken);
   updateDebugMeta();
+  if (!e2eVisualsEnabled) {
+    setOverlayScreen(e2eMode ? 'lobby' : 'menu');
+  }
 }
 
 function showGameover(payload: any) {
@@ -1729,7 +1880,17 @@ function renderLoadout() {
 async function connect(roomId?: string) {
   if (!state.accessToken) {
     addLog('warn', 'Connect blocked: missing access token.');
+    if (!e2eVisualsEnabled) {
+      setOverlayScreen('login');
+    }
     return;
+  }
+  if (state.room) {
+    try {
+      await state.room.leave();
+    } catch (error) {
+      addLog('error', 'Room leave failed', error);
+    }
   }
   state.playerId = getTokenPayload(state.accessToken) ?? '';
   updateDebugMeta();
@@ -1760,6 +1921,7 @@ async function connect(roomId?: string) {
   });
   state.room.onLeave((code) => {
     addLog('warn', 'Room left', { code });
+    handleRoomLeft();
   });
   state.room.onMessage('gameover', (payload) => {
     showGameover(payload);
@@ -1780,13 +1942,21 @@ async function connect(roomId?: string) {
     lastStateAt = now;
     renderLoadout();
   });
-  const roomMode = (state.room.state as { mode?: GameMode }).mode;
-  if (roomMode) state.mode = roomMode;
-  if (typeof state.room.state.listen === 'function') {
-    state.room.state.listen('mode', (value) => {
-      if (value) state.mode = value as GameMode;
-    });
-  }
+    const roomMode = (state.room.state as { mode?: GameMode }).mode;
+    if (roomMode) {
+      state.mode = roomMode;
+      updateLobbyModeLabel();
+      syncModeInputs();
+    }
+    if (typeof state.room.state.listen === 'function') {
+      state.room.state.listen('mode', (value) => {
+        if (value) {
+          state.mode = value as GameMode;
+          updateLobbyModeLabel();
+          syncModeInputs();
+        }
+      });
+    }
   let localPlayerBound = false;
   const bindLocalPlayer = (player: any, key: string) => {
     if (localPlayerBound || key !== state.playerId) return;
@@ -1880,39 +2050,77 @@ function getTokenPayload(token: string) {
 
 const loginButton = document.getElementById('login')!;
 const registerButton = document.getElementById('register')!;
-const quickPlayButton = document.getElementById('quick-play')!;
-const createRoomButton = document.getElementById('create-room')!;
-const joinRoomButton = document.getElementById('join-room')!;
-const browseRoomsButton = document.getElementById('browse-rooms')!;
-const roomList = document.getElementById('room-list')!;
-
-loginButton.addEventListener('click', async () => {
-  const email = (document.getElementById('email') as HTMLInputElement).value;
-  const password = (document.getElementById('password') as HTMLInputElement).value;
-  roomStatus.textContent = '';
-  try {
-    await auth('/auth/login', { email, password });
-    if (!e2eMode) await connect();
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Login failed.';
-    roomStatus.textContent = message;
-    addLog('error', 'Login failed', { message });
+  const quickPlayButton = document.getElementById('quick-play')!;
+  const createRoomButton = document.getElementById('create-room')!;
+  const joinRoomButton = document.getElementById('join-room')!;
+  const browseRoomsButton = document.getElementById('browse-rooms')!;
+  const roomList = document.getElementById('room-list')!;
+  if (!e2eVisualsEnabled) {
+    const initialScreen: OverlayScreen = state.accessToken ? (e2eMode ? 'lobby' : 'menu') : 'login';
+    setOverlayScreen(initialScreen);
   }
-});
+  
+  loginButton.addEventListener('click', async () => {
+    const email = (document.getElementById('email') as HTMLInputElement).value;
+    const password = (document.getElementById('password') as HTMLInputElement).value;
+    loginStatus.textContent = '';
+    try {
+      await auth('/auth/login', { email, password });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Login failed.';
+      loginStatus.textContent = message;
+      addLog('error', 'Login failed', { message });
+    }
+  });
 
-registerButton.addEventListener('click', async () => {
-  const email = (document.getElementById('email') as HTMLInputElement).value;
-  const password = (document.getElementById('password') as HTMLInputElement).value;
-  roomStatus.textContent = '';
-  try {
-    await auth('/auth/register', { email, password });
-    if (!e2eMode) await connect();
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Register failed.';
-    roomStatus.textContent = message;
-    addLog('error', 'Register failed', { message });
-  }
-});
+  registerButton.addEventListener('click', async () => {
+    const email = (document.getElementById('email') as HTMLInputElement).value;
+    const password = (document.getElementById('password') as HTMLInputElement).value;
+    loginStatus.textContent = '';
+    try {
+      await auth('/auth/register', { email, password });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Register failed.';
+      loginStatus.textContent = message;
+      addLog('error', 'Register failed', { message });
+    }
+  });
+
+  menuPlayButton.addEventListener('click', () => {
+    setOverlayScreen('mode');
+  });
+
+  menuLogoutButton.addEventListener('click', async () => {
+    if (state.accessToken) {
+      try {
+        await requestJson(
+          '/auth/logout',
+          { method: 'POST', headers: { Authorization: `Bearer ${state.accessToken}` } },
+          'logout'
+        );
+      } catch (error) {
+        addLog('error', 'Logout failed', error);
+      }
+    }
+    state.accessToken = '';
+    state.refreshToken = '';
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
+    updateDebugMeta();
+    setOverlayScreen('login');
+  });
+
+  modeBackButton.addEventListener('click', () => {
+    setOverlayScreen('menu');
+  });
+
+  modeContinueButton.addEventListener('click', () => {
+    setOverlayScreen('lobby');
+  });
+
+  lobbyBackButton.addEventListener('click', () => {
+    setOverlayScreen('mode');
+  });
 
 document.querySelectorAll<HTMLInputElement>('input[name="game-mode"]').forEach((input) => {
   input.addEventListener('change', () => {
@@ -1923,12 +2131,9 @@ document.querySelectorAll<HTMLInputElement>('input[name="game-mode"]').forEach((
     } else {
       state.mode = 'crew';
     }
+    updateLobbyModeLabel();
   });
 });
-
-if (state.accessToken && !e2eMode) {
-  connect();
-}
 
 quickPlayButton.addEventListener('click', async () => {
   roomStatus.textContent = '';
