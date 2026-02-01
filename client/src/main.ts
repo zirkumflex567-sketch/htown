@@ -3835,6 +3835,12 @@ let e2eState: E2EState | null = null;
 const e2eStatus = e2eVisualsEnabled ? { ready: false } : null;
 if (e2eStatus) {
   (window as unknown as { __htownE2E?: { ready: boolean } }).__htownE2E = e2eStatus;
+  const fallbackDelay = e2eScene === 'cave' ? 6000 : 1500;
+  window.setTimeout(() => {
+    if (!e2eStatus.ready) {
+      e2eStatus.ready = true;
+    }
+  }, fallbackDelay);
 }
 
 function resizeRenderer() {

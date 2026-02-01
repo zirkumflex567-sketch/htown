@@ -20,6 +20,8 @@ test('second player joins as gunner, reticle moves, and fire toggles', async ({ 
   const arenaBox = await page2.locator('#arena').boundingBox();
   if (!arenaBox) throw new Error('Arena not found');
 
+  await page2.click('#arena');
+  await page2.waitForTimeout(200);
   await page2.mouse.move(arenaBox.x + arenaBox.width * 0.8, arenaBox.y + arenaBox.height * 0.25);
   await page2.waitForTimeout(200);
   const after = await reticle.evaluate((el) => (el as HTMLElement).style.transform);
